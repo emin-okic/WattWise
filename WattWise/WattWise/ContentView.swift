@@ -9,27 +9,50 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
+    
     @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
+    
+    @Query private var entries: [UsageEntry]
+    
+    @State
+    private var showingAddDishwasherCycle = false
 
     var body: some View {
         NavigationSplitView {
+            
             List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
+                
+                ForEach(entries) { entry in
+
+                    VStack(alignment: .leading, spacing: 6) {
+
+                        Text("🍽 Dishwasher")
+                            .font(.headline)
+
+                        Text("\(entry.kWh, specifier: "%.2f") kWh")
+
+                        Text(entry.estimatedCost,
+                             format: .currency(code: "USD"))
+                            .foregroundStyle(.green)
+
+                        Text(entry.timestamp,
+                             style: .date)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
+
                 }
                 .onDelete(perform: deleteItems)
+                
             }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     EditButton()
                 }
                 ToolbarItem {
-                    Button(action: addItem) {
+                    Button {
+                        showingAddDishwasherCycle = true
+                    } label: {
                         Label("Add Item", systemImage: "plus")
                     }
                 }
@@ -37,19 +60,15 @@ struct ContentView: View {
         } detail: {
             Text("Select an item")
         }
-    }
-
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
+        .sheet(isPresented: $showingAddDishwasherCycle) {
+            AddDishwasherCycleView()
         }
     }
 
     private func deleteItems(offsets: IndexSet) {
         withAnimation {
             for index in offsets {
-                modelContext.delete(items[index])
+                modelContext.delete(entries[index])
             }
         }
     }
@@ -57,5 +76,5 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
+        .modelContainer(for: UsageEntry.self, inMemory: true)
 }
