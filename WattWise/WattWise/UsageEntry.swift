@@ -17,6 +17,8 @@ final class UsageEntry {
     // Defining a timestamp for the energy usage event
     var timestamp: Date
     
+    var appliance: Appliance
+    
     // Energy consumed by something like a dishwasher
     var kWh: Double
     
@@ -26,12 +28,17 @@ final class UsageEntry {
     // Creating an initializer
     init(
         timestamp: Date = .now,
+        appliance: Appliance,
         kWh: Double = 0,
         pricePerkWh: Double = 0
     ) {
         
         self.timestamp = timestamp
+        
+        self.appliance = appliance
+        
         self.kWh = kWh
+        
         self.pricePerkWh = pricePerkWh
         
     }

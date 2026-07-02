@@ -15,7 +15,7 @@ struct ContentView: View {
     @Query private var entries: [UsageEntry]
     
     @State
-    private var showingAddDishwasherCycle = false
+    private var showingAddUsageEntry = false
 
     var body: some View {
         NavigationSplitView {
@@ -26,19 +26,24 @@ struct ContentView: View {
 
                     VStack(alignment: .leading, spacing: 6) {
 
-                        Text("🍽 Dishwasher")
-                            .font(.headline)
+                        Label(
+                            entry.appliance.rawValue,
+                            systemImage: icon(for: entry.appliance)
+                        )
+                        .font(.headline)
 
                         Text("\(entry.kWh, specifier: "%.2f") kWh")
 
-                        Text(entry.estimatedCost,
-                             format: .currency(code: "USD"))
-                            .foregroundStyle(.green)
+                        Text(
+                            entry.estimatedCost,
+                            format: .currency(code: "USD")
+                        )
+                        .foregroundStyle(.green)
 
-                        Text(entry.timestamp,
-                             style: .date)
+                        Text(entry.timestamp, style: .date)
                             .font(.caption)
                             .foregroundStyle(.secondary)
+
                     }
 
                 }
@@ -51,7 +56,7 @@ struct ContentView: View {
                 }
                 ToolbarItem {
                     Button {
-                        showingAddDishwasherCycle = true
+                        showingAddUsageEntry = true
                     } label: {
                         Label("Add Item", systemImage: "plus")
                     }
@@ -60,8 +65,8 @@ struct ContentView: View {
         } detail: {
             Text("Select an item")
         }
-        .sheet(isPresented: $showingAddDishwasherCycle) {
-            AddDishwasherCycleView()
+        .sheet(isPresented: $showingAddUsageEntry) {
+            AddUsageEntryView()
         }
     }
 
@@ -71,6 +76,20 @@ struct ContentView: View {
                 modelContext.delete(entries[index])
             }
         }
+    }
+    
+    private func icon(for appliance: Appliance) -> String {
+
+        switch appliance {
+
+        case .dishwasher:
+            return "fork.knife"
+
+        case .washer:
+            return "tshirt"
+
+        }
+
     }
 }
 
