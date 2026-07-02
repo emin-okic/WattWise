@@ -8,10 +8,12 @@
 import SwiftUI
 import SwiftData
 
-struct AddDishwasherCycleView: View {
+struct AddUsageEntryView: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+
+    @State private var appliance: Appliance = .dishwasher
 
     @State private var kWh = 1.20
     @State private var pricePerkWh = 0.14
@@ -21,10 +23,22 @@ struct AddDishwasherCycleView: View {
     }
 
     var body: some View {
+
         NavigationStack {
+
             Form {
 
-                Section("Dishwasher Cycle") {
+                Section("Appliance") {
+
+                    Picker("Appliance", selection: $appliance) {
+                        ForEach(Appliance.allCases, id: \.self) { appliance in
+                            Text(appliance.rawValue)
+                                .tag(appliance)
+                        }
+                    }
+                }
+
+                Section("Energy") {
 
                     TextField(
                         "Energy Used (kWh)",
@@ -48,23 +62,29 @@ struct AddDishwasherCycleView: View {
                         format: .currency(code: "USD")
                     )
                     .font(.title2.bold())
+
                 }
+
             }
-            .navigationTitle("Add Cycle")
+            .navigationTitle("Add Usage")
             .navigationBarTitleDisplayMode(.inline)
 
             .toolbar {
 
                 ToolbarItem(placement: .cancellationAction) {
+
                     Button("Cancel") {
                         dismiss()
                     }
+
                 }
 
                 ToolbarItem(placement: .confirmationAction) {
+
                     Button("Save") {
 
                         let entry = UsageEntry(
+                            appliance: appliance,
                             kWh: kWh,
                             pricePerkWh: pricePerkWh
                         )
@@ -72,13 +92,19 @@ struct AddDishwasherCycleView: View {
                         modelContext.insert(entry)
 
                         dismiss()
+
                     }
+
                 }
+
             }
+
         }
+
     }
+
 }
 
 #Preview {
-    AddDishwasherCycleView()
+    AddUsageEntryView()
 }
