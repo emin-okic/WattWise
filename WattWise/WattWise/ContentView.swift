@@ -9,52 +9,50 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
-    enum Tab: String, CaseIterable, Identifiable {
-        case summary = "Summary"
-        case transactions = "Transactions"
-        var id: String { rawValue }
-    }
-
     @Environment(\.modelContext) private var modelContext
     @Query private var entries: [UsageEntry]
 
-    @State private var selectedTab: Tab = .summary
     @State private var showingAddUsageEntry = false
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                Picker("Section", selection: $selectedTab) {
-                    ForEach(Tab.allCases) { tab in
-                        Text(tab.rawValue).tag(tab)
+        TabView {
+            // Summary Tab
+            NavigationStack {
+                EnergySummaryView(entries: entries)
+                    .navigationTitle("Summary")
+                    .toolbar {
+                        ToolbarItem(placement: .primaryAction) {
+                            Button {
+                                showingAddUsageEntry = true
+                            } label: {
+                                Label("Add Item", systemImage: "plus")
+                            }
+                        }
                     }
-                }
-                .pickerStyle(.segmented)
-                .padding([.horizontal, .top])
-
-                Group {
-                    switch selectedTab {
-                    case .summary:
-                        EnergySummaryView(entries: entries)
-                            .transition(.opacity)
-                    case .transactions:
-                        transactionsList
-                    }
-                }
             }
-            .navigationTitle("WattWise")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                        .disabled(selectedTab == .summary)
-                }
-                ToolbarItem {
-                    Button {
-                        showingAddUsageEntry = true
-                    } label: {
-                        Label("Add Item", systemImage: "plus")
+            .tabItem {
+                Label("Summary", systemImage: "chart.pie")
+            }
+
+            // Transactions Tab
+            NavigationStack {
+                transactionsList
+                    .navigationTitle("Transactions")
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            EditButton()
+                        }
+                        ToolbarItem(placement: .primaryAction) {
+                            Button {
+                                showingAddUsageEntry = true
+                            } label: {
+                                Label("Add Item", systemImage: "plus")
+                            }
+                        }
                     }
-                }
+            }
+            .tabItem {
+                Label("Transactions", systemImage: "list.bullet")
             }
         }
         .sheet(isPresented: $showingAddUsageEntry) {
