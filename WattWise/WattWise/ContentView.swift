@@ -9,64 +9,81 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
-    
     @Environment(\.modelContext) private var modelContext
-    
     @Query private var entries: [UsageEntry]
-    
-    @State
-    private var showingAddUsageEntry = false
+
+    @State private var showingAddUsageEntry = false
 
     var body: some View {
-        NavigationSplitView {
-            
-            List {
-                
-                ForEach(entries) { entry in
-
-                    VStack(alignment: .leading, spacing: 6) {
-
-                        Label(
-                            entry.appliance.rawValue,
-                            systemImage: icon(for: entry.appliance)
-                        )
-                        .font(.headline)
-
-                        Text("\(entry.kWh, specifier: "%.2f") kWh")
-
-                        Text(
-                            entry.estimatedCost,
-                            format: .currency(code: "USD")
-                        )
-                        .foregroundStyle(.green)
-
-                        Text(entry.timestamp, style: .date)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-
+        TabView {
+            // Summary Tab
+            NavigationStack {
+                EnergySummaryView(entries: entries)
+                    .navigationTitle("Summary")
+                    .toolbar {
+                        ToolbarItem(placement: .primaryAction) {
+                            Button {
+                                showingAddUsageEntry = true
+                            } label: {
+                                Label("Add Item", systemImage: "plus")
+                            }
+                        }
                     }
+            }
+            .tabItem {
+                Label("Summary", systemImage: "chart.pie")
+            }
 
-                }
-                .onDelete(perform: deleteItems)
-                
-            }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-                ToolbarItem {
-                    Button {
-                        showingAddUsageEntry = true
-                    } label: {
-                        Label("Add Item", systemImage: "plus")
+            // Transactions Tab
+            NavigationStack {
+                transactionsList
+                    .navigationTitle("Transactions")
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            EditButton()
+                        }
+                        ToolbarItem(placement: .primaryAction) {
+                            Button {
+                                showingAddUsageEntry = true
+                            } label: {
+                                Label("Add Item", systemImage: "plus")
+                            }
+                        }
                     }
-                }
             }
-        } detail: {
-            Text("Select an item")
+            .tabItem {
+                Label("Transactions", systemImage: "list.bullet")
+            }
         }
         .sheet(isPresented: $showingAddUsageEntry) {
             AddUsageEntryView()
+        }
+    }
+
+    private var transactionsList: some View {
+        List {
+            ForEach(entries) { entry in
+                VStack(alignment: .leading, spacing: 6) {
+                    Label(
+                        entry.appliance.rawValue,
+                        systemImage: icon(for: entry.appliance)
+                    )
+                    .font(.headline)
+
+                    Text("\(entry.kWh, specifier: "%.2f") kWh")
+
+                    Text(
+                        entry.estimatedCost,
+                        format: .currency(code: "USD")
+                    )
+                    .foregroundStyle(.green)
+
+                    Text(entry.timestamp, style: .date)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .onDelete(perform: deleteItems)
         }
     }
 
@@ -77,19 +94,14 @@ struct ContentView: View {
             }
         }
     }
-    
+
     private func icon(for appliance: Appliance) -> String {
-
         switch appliance {
-
         case .dishwasher:
             return "fork.knife"
-
         case .washer:
             return "tshirt"
-
         }
-
     }
 }
 
