@@ -4,6 +4,8 @@ import Charts
 
 struct EnergySummaryView: View {
 
+    @Environment(\.horizontalSizeClass) private var sizeClass
+
     let entries: [UsageEntry]
 
     init(entries: [UsageEntry]) {
@@ -13,12 +15,62 @@ struct EnergySummaryView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                header
-                donutChart
-                barChart
+                headerCard
+
+                if sizeClass == .regular {
+                    HStack(alignment: .top, spacing: 16) {
+                        donutCard
+                            .frame(maxWidth: .infinity)
+                        barCard
+                            .frame(maxWidth: .infinity)
+                    }
+                } else {
+                    VStack(spacing: 16) {
+                        donutCard
+                        barCard
+                    }
+                }
             }
             .padding()
         }
+    }
+
+    private var headerCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            header
+            Divider()
+            HStack(spacing: 24) {
+                Label { Text(totals.cost, format: .currency(code: "USD")) } icon: { Image(systemName: "dollarsign.circle") }
+                Label { Text("\(totals.kWh, specifier: "%.2f") kWh") } icon: { Image(systemName: "bolt.fill") }
+            }
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+        }
+        .padding(16)
+        .background(.thinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private var donutCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Cost by Appliance").font(.headline)
+            donutChart
+                .frame(height: 220)
+        }
+        .padding(16)
+        .background(.thinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private var barCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Daily kWh").font(.headline)
+            barChart
+                .frame(height: 220)
+        }
+        .padding(16)
+        .background(.thinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private var filtered: [UsageEntry] {
@@ -69,8 +121,7 @@ struct EnergySummaryView: View {
     }
 
     private var donutChart: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Cost by Appliance").font(.headline)
+        Group {
             if byAppliance.isEmpty {
                 Text("No data for selected range").foregroundStyle(.secondary)
             } else {
@@ -82,7 +133,6 @@ struct EnergySummaryView: View {
                     )
                     .foregroundStyle(by: .value("Appliance", item.appliance.rawValue))
                 }
-                .frame(height: 220)
                 .chartLegend(position: .bottom, alignment: .leading)
                 .chartBackground { _ in
                     VStack(spacing: 4) {
@@ -97,8 +147,7 @@ struct EnergySummaryView: View {
     }
 
     private var barChart: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Daily kWh").font(.headline)
+        Group {
             if byDay.isEmpty {
                 Text("No data for selected range").foregroundStyle(.secondary)
             } else {
@@ -109,7 +158,6 @@ struct EnergySummaryView: View {
                     )
                     .foregroundStyle(.blue.gradient)
                 }
-                .frame(height: 220)
                 .chartXAxis {
                     AxisMarks(values: .automatic(desiredCount: 6))
                 }
