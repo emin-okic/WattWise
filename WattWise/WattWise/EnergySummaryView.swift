@@ -3,16 +3,8 @@ import SwiftData
 import Charts
 
 struct EnergySummaryView: View {
-    enum RangeOption: String, CaseIterable, Identifiable {
-        case thisMonth = "This Month"
-        case lastMonth = "Last Month"
-        case allTime = "All Time"
-        var id: String { rawValue }
-    }
 
     let entries: [UsageEntry]
-
-    @State private var range: RangeOption = .thisMonth
 
     init(entries: [UsageEntry]) {
         self.entries = entries
@@ -21,33 +13,20 @@ struct EnergySummaryView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                rangePicker
                 header
                 donutChart
                 barChart
             }
             .padding()
         }
-        .animation(.snappy, value: range)
     }
 
     private var filtered: [UsageEntry] {
         let now = Date()
         let cal = Calendar.current
-        switch range {
-        case .thisMonth:
-            if let start = cal.date(from: cal.dateComponents([.year, .month], from: now)),
-               let end = cal.date(byAdding: DateComponents(month: 1, day: -1), to: start)?.endOfDay(cal) {
-                return entries.filter { $0.timestamp >= start && $0.timestamp <= end }
-            }
-        case .lastMonth:
-            if let thisStart = cal.date(from: cal.dateComponents([.year, .month], from: now)),
-               let start = cal.date(byAdding: .month, value: -1, to: thisStart),
-               let end = cal.date(byAdding: DateComponents(day: -1), to: thisStart)?.endOfDay(cal) {
-                return entries.filter { $0.timestamp >= start && $0.timestamp <= end }
-            }
-        case .allTime:
-            return entries
+        if let start = cal.date(from: cal.dateComponents([.year, .month], from: now)),
+           let end = cal.date(byAdding: DateComponents(month: 1, day: -1), to: start)?.endOfDay(cal) {
+            return entries.filter { $0.timestamp >= start && $0.timestamp <= end }
         }
         return entries
     }
@@ -73,18 +52,9 @@ struct EnergySummaryView: View {
             .sorted { $0.date < $1.date }
     }
 
-    private var rangePicker: some View {
-        Picker("Range", selection: $range) {
-            ForEach(RangeOption.allCases) { opt in
-                Text(opt.rawValue).tag(opt)
-            }
-        }
-        .pickerStyle(.segmented)
-    }
-
     private var header: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Summary").font(.title2.bold())
+            Text("This Month").font(.title2.bold())
             HStack(spacing: 24) {
                 VStack(alignment: .leading) {
                     Text("Total Spent").font(.caption).foregroundStyle(.secondary)
@@ -111,18 +81,16 @@ struct EnergySummaryView: View {
                         outerRadius: .ratio(1.0)
                     )
                     .foregroundStyle(by: .value("Appliance", item.appliance.rawValue))
-                    .annotation(position: .overlay) {
-                        if let first = byAppliance.first, item.appliance == first.appliance {
-                            VStack {
-                                Text("Spent").font(.caption)
-                                Text(totals.cost, format: .currency(code: "USD")).font(.headline)
-                            }
-                            .accessibilityHidden(true)
-                        }
-                    }
                 }
                 .frame(height: 220)
                 .chartLegend(position: .bottom, alignment: .leading)
+                .chartBackground { _ in
+                    VStack(spacing: 4) {
+                        Text("Spent").font(.caption)
+                        Text(totals.cost, format: .currency(code: "USD")).font(.headline)
+                    }
+                    .accessibilityHidden(true)
+                }
                 .accessibilityLabel(Text("Cost distribution by appliance"))
             }
         }
