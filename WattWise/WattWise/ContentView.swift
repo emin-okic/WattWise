@@ -9,50 +9,44 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
-    
+    enum Tab: String, CaseIterable, Identifiable {
+        case summary = "Summary"
+        case transactions = "Transactions"
+        var id: String { rawValue }
+    }
+
     @Environment(\.modelContext) private var modelContext
-    
     @Query private var entries: [UsageEntry]
-    
-    @State
-    private var showingAddUsageEntry = false
+
+    @State private var selectedTab: Tab = .summary
+    @State private var showingAddUsageEntry = false
 
     var body: some View {
-        NavigationSplitView {
-            
-            List {
-                
-                ForEach(entries) { entry in
-
-                    VStack(alignment: .leading, spacing: 6) {
-
-                        Label(
-                            entry.appliance.rawValue,
-                            systemImage: icon(for: entry.appliance)
-                        )
-                        .font(.headline)
-
-                        Text("\(entry.kWh, specifier: "%.2f") kWh")
-
-                        Text(
-                            entry.estimatedCost,
-                            format: .currency(code: "USD")
-                        )
-                        .foregroundStyle(.green)
-
-                        Text(entry.timestamp, style: .date)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-
+        NavigationStack {
+            VStack(spacing: 0) {
+                Picker("Section", selection: $selectedTab) {
+                    ForEach(Tab.allCases) { tab in
+                        Text(tab.rawValue).tag(tab)
                     }
-
                 }
-                .onDelete(perform: deleteItems)
-                
+                .pickerStyle(.segmented)
+                .padding([.horizontal, .top])
+
+                Group {
+                    switch selectedTab {
+                    case .summary:
+                        EnergySummaryView(entries: entries)
+                            .transition(.opacity)
+                    case .transactions:
+                        transactionsList
+                    }
+                }
             }
+            .navigationTitle("WattWise")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     EditButton()
+                        .disabled(selectedTab == .summary)
                 }
                 ToolbarItem {
                     Button {
@@ -62,11 +56,36 @@ struct ContentView: View {
                     }
                 }
             }
-        } detail: {
-            Text("Select an item")
         }
         .sheet(isPresented: $showingAddUsageEntry) {
             AddUsageEntryView()
+        }
+    }
+
+    private var transactionsList: some View {
+        List {
+            ForEach(entries) { entry in
+                VStack(alignment: .leading, spacing: 6) {
+                    Label(
+                        entry.appliance.rawValue,
+                        systemImage: icon(for: entry.appliance)
+                    )
+                    .font(.headline)
+
+                    Text("\(entry.kWh, specifier: "%.2f") kWh")
+
+                    Text(
+                        entry.estimatedCost,
+                        format: .currency(code: "USD")
+                    )
+                    .foregroundStyle(.green)
+
+                    Text(entry.timestamp, style: .date)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .onDelete(perform: deleteItems)
         }
     }
 
@@ -77,19 +96,14 @@ struct ContentView: View {
             }
         }
     }
-    
+
     private func icon(for appliance: Appliance) -> String {
-
         switch appliance {
-
         case .dishwasher:
             return "fork.knife"
-
         case .washer:
             return "tshirt"
-
         }
-
     }
 }
 
