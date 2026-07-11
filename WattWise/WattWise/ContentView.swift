@@ -388,20 +388,20 @@ private struct MonthYearGridSheet: View {
 
                 // Footer
                 VStack(spacing: 8) {
-                    Button {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                            month = currentMonth
-                            year = currentYear
-                            visibleYear = currentYear
-                            dismiss()
+                    if !(year == currentYear && month == currentMonth) {
+                        Button {
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                month = currentMonth
+                                year = currentYear
+                                visibleYear = currentYear
+                                dismiss()
+                            }
+                        } label: {
+                            Text("Go to Today")
+                                .font(.callout.weight(.semibold))
                         }
-                    } label: {
-                        Text("Go to Today")
-                            .font(.callout.weight(.semibold))
-                    }
-                    .buttonStyle(.bordered)
-
-                    if year == currentYear && month == currentMonth {
+                        .buttonStyle(.bordered)
+                    } else {
                         Text("You're on the current month")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
@@ -412,7 +412,7 @@ private struct MonthYearGridSheet: View {
             .onAppear {
                 visibleYear = year
             }
-            .navigationTitle("Select Month")
+            //.navigationTitle("Select Month")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close") { dismiss() }
