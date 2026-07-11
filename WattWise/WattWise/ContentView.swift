@@ -47,7 +47,6 @@ struct ContentView: View {
                     transactionsList
                 }
                 .padding(.horizontal)
-                .navigationTitle("Transactions")
                 .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
                         EditButton()
