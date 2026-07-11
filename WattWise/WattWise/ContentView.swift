@@ -345,7 +345,7 @@ private struct MonthYearGridSheet: View {
 
                     Spacer()
 
-                    Text("\(visibleYear)")
+                    Text(visibleYear, format: .number.grouping(.never))
                         .font(.title2.weight(.bold))
 
                     Spacer()
