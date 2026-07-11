@@ -24,7 +24,6 @@ struct ContentView: View {
             // Summary Tab
             NavigationStack {
                 EnergySummaryView(entries: entries)
-                    .navigationTitle("Summary")
                     .toolbar {
                         ToolbarItem(placement: .primaryAction) {
                             Button {
