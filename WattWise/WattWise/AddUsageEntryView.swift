@@ -13,6 +13,9 @@ struct AddUsageEntryView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
 
+    @Query private var groups: [UsageGroup]
+
+    @State private var selectedGroup: UsageGroup? = nil
     @State private var appliance: Appliance = .dishwasher
 
     @State private var kWh = 1.20
@@ -27,6 +30,14 @@ struct AddUsageEntryView: View {
         NavigationStack {
 
             Form {
+
+                Section("Group") {
+                    Picker("Group", selection: $selectedGroup) {
+                        ForEach(groups) { g in
+                            Text(g.name).tag(Optional(g))
+                        }
+                    }
+                }
 
                 Section("Appliance") {
 
@@ -68,7 +79,15 @@ struct AddUsageEntryView: View {
             }
             .navigationTitle("Add Usage")
             .navigationBarTitleDisplayMode(.inline)
-
+            .onAppear {
+                if selectedGroup == nil {
+                    if let unc = groups.first(where: { $0.name == "Uncategorized" }) {
+                        selectedGroup = unc
+                    } else if let home = groups.first(where: { $0.name == "Home" }) {
+                        selectedGroup = home
+                    }
+                }
+            }
             .toolbar {
 
                 ToolbarItem(placement: .cancellationAction) {
@@ -88,6 +107,8 @@ struct AddUsageEntryView: View {
                             kWh: kWh,
                             pricePerkWh: pricePerkWh
                         )
+
+                        entry.group = selectedGroup ?? groups.first(where: { $0.name == "Uncategorized" }) ?? groups.first(where: { $0.name == "Home" })
 
                         modelContext.insert(entry)
 

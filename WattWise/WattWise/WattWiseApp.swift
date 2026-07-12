@@ -13,6 +13,8 @@ struct WattWiseApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             UsageEntry.self,
+            UsageGroup.self,
+            MonthlyBudget.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 

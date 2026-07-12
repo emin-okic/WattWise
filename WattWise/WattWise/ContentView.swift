@@ -12,10 +12,16 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var entries: [UsageEntry]
     @Query private var monthlyBudgets: [MonthlyBudget]
+    @Query private var groups: [UsageGroup]
 
     @State private var showingAddUsageEntry = false
     @State private var selectedMonth: Int = Calendar.current.component(.month, from: Date())
     @State private var selectedYear: Int = Calendar.current.component(.year, from: Date())
+
+    @State private var showingAddGroupAlert = false
+    @State private var newGroupName = ""
+    @State private var collapsedGroups: Set<String> = []
+    @State private var presentedGroupName: String? = nil
 
     private var selectedBudget: MonthlyBudget? {
         monthlyBudgets.first { $0.month == selectedMonth && $0.year == selectedYear }
@@ -41,20 +47,15 @@ struct ContentView: View {
         }
     }
 
+    private var defaultGroup: UsageGroup? {
+        groups.first { $0.name == "Home" }
+    }
+
     var body: some View {
         TabView {
             // Summary Tab
             NavigationStack {
                 EnergySummaryView(entries: entriesForSelection)
-                    .toolbar {
-                        ToolbarItem(placement: .primaryAction) {
-                            Button {
-                                showingAddUsageEntry = true
-                            } label: {
-                                Label("Add Item", systemImage: "plus")
-                            }
-                        }
-                    }
             }
             .tabItem {
                 Label("Summary", systemImage: "chart.pie")
@@ -68,13 +69,28 @@ struct ContentView: View {
                     SpendGoalInput(spendGoal: spendGoal) { newGoal in
                         setSpendGoal(newGoal)
                     }
+                    HStack {
+                        Text("Transactions (by Group)")
+                            .font(.title3.weight(.semibold))
+                        Spacer()
+                    }
+                    .padding(.top, 4)
                     transactionsList
                 }
                 .padding(.horizontal)
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        EditButton()
+                .onAppear {
+                    if groups.first(where: { $0.name == "Home" }) == nil {
+                        let g = UsageGroup(name: "Home")
+                        modelContext.insert(g)
+                        try? modelContext.save()
                     }
+                    if groups.first(where: { $0.name == "Uncategorized" }) == nil {
+                        let u = UsageGroup(name: "Uncategorized")
+                        modelContext.insert(u)
+                        try? modelContext.save()
+                    }
+                }
+                .toolbar {
                     ToolbarItem(placement: .primaryAction) {
                         Button {
                             showingAddUsageEntry = true
@@ -82,6 +98,23 @@ struct ContentView: View {
                             Label("Add Item", systemImage: "plus")
                         }
                     }
+                }
+                .alert("New Group", isPresented: $showingAddGroupAlert) {
+                    TextField("Group name", text: $newGroupName)
+                    Button("Add") {
+                        let name = newGroupName.trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard !name.isEmpty else { return }
+                        if !groups.contains(where: { $0.name.caseInsensitiveCompare(name) == .orderedSame }) {
+                            modelContext.insert(UsageGroup(name: name))
+                            try? modelContext.save()
+                        }
+                        newGroupName = ""
+                    }
+                    Button("Cancel", role: .cancel) {
+                        newGroupName = ""
+                    }
+                } message: {
+                    Text("Create a room/area category like Kitchen, Bathroom, Living Room.")
                 }
             }
             .tabItem {
@@ -94,32 +127,113 @@ struct ContentView: View {
     }
 
     private var transactionsList: some View {
-        List {
-            ForEach(entriesForSelection) { entry in
-                VStack(alignment: .leading, spacing: 6) {
-                    Label(
-                        entry.appliance.rawValue,
-                        systemImage: icon(for: entry.appliance)
+        let uncategorizedGroup = groups.first { $0.name == "Uncategorized" }
+        let normalizedEntries: [UsageEntry] = entriesForSelection.map { e in
+            if e.group == nil, let unc = uncategorizedGroup {
+                e.group = unc
+            }
+            return e
+        }
+        let grouped = Dictionary(grouping: normalizedEntries) { $0.group?.name ?? "Uncategorized" }
+        let sortedSectionNames = grouped.keys.sorted()
+        let allGroupNames = Array(Set(sortedSectionNames).union(groups.map { $0.name })).sorted()
+
+        return List {
+            ForEach(allGroupNames, id: \.self) { sectionName in
+                let sectionItems = grouped[sectionName] ?? []
+                let sectionTotal = sectionItems.reduce(0.0) { $0 + $1.estimatedCost }
+                Button {
+                    presentedGroupName = sectionName
+                } label: {
+                    HStack {
+                        Text(sectionName)
+                            .font(.headline)
+                        Spacer()
+                        Text(sectionTotal, format: .currency(code: "USD"))
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 6)
+                    .padding(.horizontal, 8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(Color(UIColor.systemBackground))
                     )
-                    .font(.headline)
-
-                    Text("\(entry.kWh, specifier: "%.2f") kWh")
-
-                    Text(
-                        entry.estimatedCost,
-                        format: .currency(code: "USD")
-                    )
-                    .foregroundStyle(.green)
-
-                    Text(entry.timestamp.formatted(.dateTime.month(.abbreviated).year()))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .if(sectionName != "Uncategorized") { view in
+                    view.swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            deleteGroup(named: sectionName)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
                 }
                 .padding(.vertical, 4)
             }
-            .onDelete(perform: deleteItems)
+            
+            Section {
+                Button {
+                    showingAddGroupAlert = true
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "plus")
+                        Text("Add New Group")
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color(UIColor.systemGray6))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.blue.opacity(0.5), lineWidth: 1.5)
+                    )
+                    .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
         }
         .listStyle(.insetGrouped)
+        .sheet(isPresented: Binding(get: { presentedGroupName != nil }, set: { if !$0 { presentedGroupName = nil } })) {
+            let name = presentedGroupName ?? ""
+            let items = grouped[name] ?? []
+            NavigationStack {
+                List {
+                    ForEach(items) { entry in
+                        VStack(alignment: .leading, spacing: 6) {
+                            Label(entry.appliance.rawValue, systemImage: icon(for: entry.appliance))
+                                .font(.headline)
+                            Text("\(entry.kWh, specifier: "%.2f") kWh")
+                            Text(entry.estimatedCost, format: .currency(code: "USD")).foregroundStyle(.green)
+                            Text(entry.timestamp.formatted(.dateTime.month(.abbreviated).year()))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .onDelete { offsets in
+                        withAnimation {
+                            let toDelete = offsets.map { items[$0] }
+                            for item in toDelete { modelContext.delete(item) }
+                        }
+                    }
+                }
+                .navigationTitle(name)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Close") { presentedGroupName = nil }
+                    }
+                    ToolbarItem(placement: .primaryAction) {
+                        EditButton()
+                    }
+                }
+            }
+            .presentationDetents([.medium, .large])
+        }
     }
 
     private func deleteItems(offsets: IndexSet) {
@@ -151,6 +265,17 @@ struct ContentView: View {
             let new = MonthlyBudget(month: selectedMonth, year: selectedYear, spendGoal: goal)
             modelContext.insert(new)
         }
+    }
+    
+    private func deleteGroup(named name: String) {
+        guard let groupToDelete = groups.first(where: { $0.name == name }) else { return }
+        guard let unc = groups.first(where: { $0.name == "Uncategorized" }) else { return }
+        // Prevent deleting Uncategorized itself
+        if groupToDelete.name == "Uncategorized" { return }
+        // Reassign entries
+        for entry in groupToDelete.entries { entry.group = unc }
+        modelContext.delete(groupToDelete)
+        try? modelContext.save()
     }
 }
 
@@ -450,4 +575,15 @@ private struct MonthCell: View {
 #Preview {
     ContentView()
         .modelContainer(for: UsageEntry.self, inMemory: true)
+}
+
+private extension View {
+    @ViewBuilder
+    func `if`<Content: View>(_ condition: Bool, transform: (Self) -> Content) -> some View {
+        if condition {
+            transform(self)
+        } else {
+            self
+        }
+    }
 }
