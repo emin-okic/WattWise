@@ -203,12 +203,16 @@ struct ContentView: View {
                         Text("Add New Group")
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(8)
-                    .foregroundColor(Color.accentColor)
+                    .padding(12)
                     .background(
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color.accentColor, lineWidth: 2)
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color(UIColor.systemGray6))
                     )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.blue.opacity(0.5), lineWidth: 1.5)
+                    )
+                    .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
             }
