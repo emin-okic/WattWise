@@ -139,6 +139,7 @@ struct ContentView: View {
 
         return List {
             ForEach(sortedSectionNames, id: \.self) { sectionName in
+                let sectionTotal = (grouped[sectionName] ?? []).reduce(0.0) { $0 + $1.estimatedCost }
                 Section {
                     if !collapsedGroups.contains(sectionName) {
                         let items = grouped[sectionName] ?? []
@@ -187,6 +188,9 @@ struct ContentView: View {
                             Text(sectionName)
                                 .font(.headline)
                             Spacer()
+                            Text(sectionTotal, format: .currency(code: "USD"))
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.secondary)
                         }
                         .contentShape(Rectangle())
                     }
@@ -549,3 +553,4 @@ private struct MonthCell: View {
     ContentView()
         .modelContainer(for: UsageEntry.self, inMemory: true)
 }
+
