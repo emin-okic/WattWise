@@ -12,10 +12,15 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var entries: [UsageEntry]
     @Query private var monthlyBudgets: [MonthlyBudget]
+    @Query private var groups: [UsageGroup]
 
     @State private var showingAddUsageEntry = false
     @State private var selectedMonth: Int = Calendar.current.component(.month, from: Date())
     @State private var selectedYear: Int = Calendar.current.component(.year, from: Date())
+
+    @State private var showingAddGroupAlert = false
+    @State private var newGroupName = ""
+    @State private var collapsedGroups: Set<String> = []
 
     private var selectedBudget: MonthlyBudget? {
         monthlyBudgets.first { $0.month == selectedMonth && $0.year == selectedYear }
@@ -39,6 +44,10 @@ struct ContentView: View {
             let comp = cal.dateComponents([.year, .month], from: $0.timestamp)
             return comp.year == selectedYear && comp.month == selectedMonth
         }
+    }
+
+    private var defaultGroup: UsageGroup? {
+        groups.first { $0.name == "Home" }
     }
 
     var body: some View {
@@ -71,6 +80,13 @@ struct ContentView: View {
                     transactionsList
                 }
                 .padding(.horizontal)
+                .onAppear {
+                    if groups.first(where: { $0.name == "Home" }) == nil {
+                        let g = UsageGroup(name: "Home")
+                        modelContext.insert(g)
+                        try? modelContext.save()
+                    }
+                }
                 .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
                         EditButton()
@@ -83,6 +99,23 @@ struct ContentView: View {
                         }
                     }
                 }
+                .alert("New Group", isPresented: $showingAddGroupAlert) {
+                    TextField("Group name", text: $newGroupName)
+                    Button("Add") {
+                        let name = newGroupName.trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard !name.isEmpty else { return }
+                        if !groups.contains(where: { $0.name.caseInsensitiveCompare(name) == .orderedSame }) {
+                            modelContext.insert(UsageGroup(name: name))
+                            try? modelContext.save()
+                        }
+                        newGroupName = ""
+                    }
+                    Button("Cancel", role: .cancel) {
+                        newGroupName = ""
+                    }
+                } message: {
+                    Text("Create a room/area category like Kitchen, Bathroom, Living Room.")
+                }
             }
             .tabItem {
                 Label("Transactions", systemImage: "list.bullet")
@@ -94,30 +127,91 @@ struct ContentView: View {
     }
 
     private var transactionsList: some View {
-        List {
-            ForEach(entriesForSelection) { entry in
-                VStack(alignment: .leading, spacing: 6) {
-                    Label(
-                        entry.appliance.rawValue,
-                        systemImage: icon(for: entry.appliance)
-                    )
-                    .font(.headline)
-
-                    Text("\(entry.kWh, specifier: "%.2f") kWh")
-
-                    Text(
-                        entry.estimatedCost,
-                        format: .currency(code: "USD")
-                    )
-                    .foregroundStyle(.green)
-
-                    Text(entry.timestamp.formatted(.dateTime.month(.abbreviated).year()))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.vertical, 4)
+        let homeGroup = groups.first { $0.name == "Home" }
+        let normalizedEntries: [UsageEntry] = entriesForSelection.map { e in
+            if e.group == nil, let home = homeGroup {
+                e.group = home
             }
-            .onDelete(perform: deleteItems)
+            return e
+        }
+        let grouped = Dictionary(grouping: normalizedEntries) { $0.group?.name ?? "Home" }
+        let sortedSectionNames = grouped.keys.sorted()
+
+        return List {
+            ForEach(sortedSectionNames, id: \.self) { sectionName in
+                Section {
+                    if !collapsedGroups.contains(sectionName) {
+                        let items = grouped[sectionName] ?? []
+                        ForEach(items) { entry in
+                            VStack(alignment: .leading, spacing: 6) {
+                                Label(
+                                    entry.appliance.rawValue,
+                                    systemImage: icon(for: entry.appliance)
+                                )
+                                .font(.headline)
+
+                                Text("\(entry.kWh, specifier: "%.2f") kWh")
+
+                                Text(
+                                    entry.estimatedCost,
+                                    format: .currency(code: "USD")
+                                )
+                                .foregroundStyle(.green)
+
+                                Text(entry.timestamp.formatted(.dateTime.month(.abbreviated).year()))
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding(.vertical, 4)
+                        }
+                        .onDelete { offsets in
+                            withAnimation {
+                                let toDelete = offsets.map { items[$0] }
+                                for item in toDelete {
+                                    modelContext.delete(item)
+                                }
+                            }
+                        }
+                    }
+                } header: {
+                    Button {
+                        if collapsedGroups.contains(sectionName) {
+                            collapsedGroups.remove(sectionName)
+                        } else {
+                            collapsedGroups.insert(sectionName)
+                        }
+                    } label: {
+                        HStack {
+                            Image(systemName: collapsedGroups.contains(sectionName) ? "chevron.right" : "chevron.down")
+                                .foregroundStyle(.secondary)
+                            Text(sectionName)
+                                .font(.headline)
+                            Spacer()
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            
+            Section {
+                Button {
+                    showingAddGroupAlert = true
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "plus")
+                        Text("Add New Group")
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(8)
+                    .foregroundColor(Color.accentColor)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color.accentColor, lineWidth: 2)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
         }
         .listStyle(.insetGrouped)
     }
