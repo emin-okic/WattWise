@@ -170,11 +170,13 @@ struct ContentView: View {
                     )
                 }
                 .buttonStyle(.plain)
-                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                    Button(role: .destructive) {
-                        deleteGroup(named: sectionName)
-                    } label: {
-                        Label("Delete", systemImage: "trash")
+                .if(sectionName != "Uncategorized") { view in
+                    view.swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            deleteGroup(named: sectionName)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
                     }
                 }
                 .padding(.vertical, 4)
@@ -582,4 +584,15 @@ private struct MonthCell: View {
 #Preview {
     ContentView()
         .modelContainer(for: UsageEntry.self, inMemory: true)
+}
+
+private extension View {
+    @ViewBuilder
+    func `if`<Content: View>(_ condition: Bool, transform: (Self) -> Content) -> some View {
+        if condition {
+            transform(self)
+        } else {
+            self
+        }
+    }
 }
