@@ -18,6 +18,9 @@ struct AddUsageEntryView: View {
     @State private var kWh = 1.20
     @State private var pricePerkWh = 0.14
 
+    @Query private var categories: [Category]
+    @State private var selectedCategory: Category?
+
     private var estimatedCost: Double {
         kWh * pricePerkWh
     }
@@ -55,6 +58,21 @@ struct AddUsageEntryView: View {
                     .keyboardType(.decimalPad)
                 }
 
+                Section("Category") {
+                    Picker("Category", selection: Binding(
+                        get: { selectedCategory ?? categories.first(where: { $0.name == "Home" }) },
+                        set: { selectedCategory = $0 }
+                    )) {
+                        ForEach(categories, id: \.persistentModelID) { cat in
+                            HStack {
+                                Image(systemName: cat.iconSystemName)
+                                Text(cat.name)
+                            }
+                            .tag(cat as Category?)
+                        }
+                    }
+                }
+
                 Section("Estimated Cost") {
 
                     Text(
@@ -65,6 +83,11 @@ struct AddUsageEntryView: View {
 
                 }
 
+            }
+            .onAppear {
+                if selectedCategory == nil {
+                    selectedCategory = categories.first(where: { $0.name == "Home" }) ?? categories.first
+                }
             }
             .navigationTitle("Add Usage")
             .navigationBarTitleDisplayMode(.inline)
@@ -83,13 +106,24 @@ struct AddUsageEntryView: View {
 
                     Button("Save") {
 
+                        // Ensure Home category exists
+                        if !categories.contains(where: { $0.name == "Home" }) {
+                            let home = Category(name: "Home", iconSystemName: "house.fill", colorHex: "#90CAF9")
+                            modelContext.insert(home)
+                            try? modelContext.save()
+                        }
+
+                        let chosenCategory: Category? = selectedCategory ?? categories.first(where: { $0.name == "Home" })
+
                         let entry = UsageEntry(
                             appliance: appliance,
                             kWh: kWh,
-                            pricePerkWh: pricePerkWh
+                            pricePerkWh: pricePerkWh,
+                            category: chosenCategory
                         )
 
                         modelContext.insert(entry)
+                        try? modelContext.save()
 
                         dismiss()
 
@@ -106,5 +140,6 @@ struct AddUsageEntryView: View {
 }
 
 #Preview {
-    AddUsageEntryView()
+    let container = try! ModelContainer(for: UsageEntry.self, Category.self, configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+    return AddUsageEntryView().modelContainer(container)
 }

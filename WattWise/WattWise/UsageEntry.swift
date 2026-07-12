@@ -25,12 +25,16 @@ final class UsageEntry {
     // This is the utility rate
     var pricePerkWh: Double
     
+    @Relationship(deleteRule: .nullify)
+    var category: Category?
+    
     // Creating an initializer
     init(
         timestamp: Date = .now,
         appliance: Appliance,
         kWh: Double = 0,
-        pricePerkWh: Double = 0
+        pricePerkWh: Double = 0,
+        category: Category? = nil
     ) {
         
         self.timestamp = timestamp
@@ -40,6 +44,8 @@ final class UsageEntry {
         self.kWh = kWh
         
         self.pricePerkWh = pricePerkWh
+        
+        self.category = category
         
     }
     

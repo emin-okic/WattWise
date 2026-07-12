@@ -12,6 +12,7 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var entries: [UsageEntry]
     @Query private var monthlyBudgets: [MonthlyBudget]
+    @Query private var categories: [Category]
 
     @State private var showingAddUsageEntry = false
     @State private var selectedMonth: Int = Calendar.current.component(.month, from: Date())
@@ -68,6 +69,10 @@ struct ContentView: View {
                     SpendGoalInput(spendGoal: spendGoal) { newGoal in
                         setSpendGoal(newGoal)
                     }
+                    GroupsSummaryView(
+                        entries: entriesForSelection,
+                        categories: categories
+                    )
                     transactionsList
                 }
                 .padding(.horizontal)
@@ -82,6 +87,10 @@ struct ContentView: View {
                             Label("Add Item", systemImage: "plus")
                         }
                     }
+                }
+                .onAppear {
+                    ensureDefaultHomeCategory()
+                    assignDefaultCategoryIfNeeded()
                 }
             }
             .tabItem {
@@ -102,6 +111,27 @@ struct ContentView: View {
                         systemImage: icon(for: entry.appliance)
                     )
                     .font(.headline)
+
+                    let cat = entry.category ?? categories.first(where: { $0.name == "Home" })
+                    if let cat {
+                        HStack(spacing: 6) {
+                            Image(systemName: cat.iconSystemName)
+                                .font(.caption)
+                            Text(cat.name)
+                                .font(.caption.weight(.semibold))
+                        }
+                        .padding(.vertical, 2)
+                        .padding(.horizontal, 8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color(hex: cat.colorHex) ?? Color.accentColor.opacity(0.15))
+                                .opacity(0.2)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke((Color(hex: cat.colorHex) ?? Color.accentColor).opacity(0.6), lineWidth: 1)
+                        )
+                    }
 
                     Text("\(entry.kWh, specifier: "%.2f") kWh")
 
@@ -150,6 +180,26 @@ struct ContentView: View {
         } else {
             let new = MonthlyBudget(month: selectedMonth, year: selectedYear, spendGoal: goal)
             modelContext.insert(new)
+        }
+    }
+
+    private func ensureDefaultHomeCategory() {
+        if !categories.contains(where: { $0.name == "Home" }) {
+            let home = Category(name: "Home", iconSystemName: "house.fill", colorHex: "#90CAF9")
+            modelContext.insert(home)
+            try? modelContext.save()
+        }
+    }
+
+    private func assignDefaultCategoryIfNeeded() {
+        guard let home = categories.first(where: { $0.name == "Home" }) else { return }
+        var changed = false
+        for entry in entries where entry.category == nil {
+            entry.category = home
+            changed = true
+        }
+        if changed {
+            try? modelContext.save()
         }
     }
 }
@@ -444,6 +494,105 @@ private struct MonthCell: View {
         }
         .buttonStyle(.plain)
         .foregroundStyle(isSelected ? Color.accentColor : .primary)
+    }
+}
+
+private struct GroupsSummaryView: View {
+    let entries: [UsageEntry]
+    let categories: [Category]
+
+    @State private var expanded: Set<String> = []
+
+    @Environment(\.modelContext) private var modelContext
+
+    private func totals(for name: String?) -> (kWh: Double, cost: Double) {
+        let filtered = entries.filter { $0.category?.name == name }
+        let kWh = filtered.reduce(0) { $0 + $1.kWh }
+        let cost = filtered.reduce(0) { $0 + $1.estimatedCost }
+        return (kWh, cost)
+    }
+
+    private func addGroup() {
+        let base = "New Group"
+        var name = base
+        var idx = 1
+        let existingNames = Set(categories.map { $0.name })
+        while existingNames.contains(name) {
+            idx += 1
+            name = "\(base) \(idx)"
+        }
+        let newCat = Category(name: name, iconSystemName: "square.grid.2x2", colorHex: "#BDBDBD")
+        modelContext.insert(newCat)
+        do { try modelContext.save() } catch { }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Groups")
+                .font(.headline)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 4)
+
+            // Add Group tile
+            Button {
+                addGroup()
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "plus.circle")
+                    Text("Add Group")
+                        .font(.subheadline.weight(.semibold))
+                    Spacer()
+                }
+                .padding(12)
+                .frame(maxWidth: .infinity)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .strokeBorder(Color.secondary.opacity(0.3), style: StrokeStyle(lineWidth: 1, dash: [6]))
+                )
+            }
+            .buttonStyle(.plain)
+
+            List {
+                ForEach(categories, id: \.persistentModelID) { cat in
+                    let t = totals(for: cat.name)
+                    Section {
+                        if expanded.contains(cat.name) {
+                            ForEach(entries.filter { $0.category?.name == cat.name }) { e in
+                                HStack {
+                                    Text(e.appliance.rawValue)
+                                    Spacer()
+                                    Text(e.estimatedCost, format: .currency(code: "USD"))
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                    } header: {
+                        Button {
+                            if expanded.contains(cat.name) { expanded.remove(cat.name) } else { expanded.insert(cat.name) }
+                        } label: {
+                            HStack {
+                                Image(systemName: cat.iconSystemName)
+                                Text(cat.name)
+                                    .font(.headline)
+                                Spacer()
+                                VStack(alignment: .trailing, spacing: 2) {
+                                    Text(t.cost, format: .currency(code: "USD"))
+                                        .font(.subheadline.weight(.semibold))
+                                    Text("\(t.kWh, specifier: "%.1f") kWh")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Image(systemName: expanded.contains(cat.name) ? "chevron.up" : "chevron.down")
+                                    .foregroundStyle(.secondary)
+                            }
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .listStyle(.insetGrouped)
+        }
     }
 }
 

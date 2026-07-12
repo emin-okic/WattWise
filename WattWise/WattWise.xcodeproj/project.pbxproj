@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		C53A09183003251D001F95A4 /* Category.swift in Sources */ = {isa = PBXBuildFile; fileRef = C53A09173003251D001F95A4 /* Category.swift */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		C52F9C642FF0A55900852175 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -27,6 +31,7 @@
 		C52F9C522FF0A55800852175 /* WattWise.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WattWise.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C52F9C632FF0A55900852175 /* WattWiseTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WattWiseTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C52F9C6D2FF0A55900852175 /* WattWiseUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WattWiseUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		C53A09173003251D001F95A4 /* Category.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Category.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -92,6 +97,7 @@
 				C52F9C662FF0A55900852175 /* WattWiseTests */,
 				C52F9C702FF0A55900852175 /* WattWiseUITests */,
 				C52F9C532FF0A55800852175 /* Products */,
+				C53A09173003251D001F95A4 /* Category.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -249,6 +255,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C53A09183003251D001F95A4 /* Category.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
