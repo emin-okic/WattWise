@@ -78,6 +78,12 @@ struct ContentView: View {
                     SpendGoalInput(spendGoal: spendGoal) { newGoal in
                         setSpendGoal(newGoal)
                     }
+                    HStack {
+                        Text("Transactions (by Group)")
+                            .font(.title3.weight(.semibold))
+                        Spacer()
+                    }
+                    .padding(.top, 4)
                     transactionsList
                 }
                 .padding(.horizontal)
@@ -94,9 +100,6 @@ struct ContentView: View {
                     }
                 }
                 .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        EditButton()
-                    }
                     ToolbarItem(placement: .primaryAction) {
                         Button {
                             showingAddUsageEntry = true
@@ -145,14 +148,6 @@ struct ContentView: View {
         let allGroupNames = Array(Set(sortedSectionNames).union(groups.map { $0.name })).sorted()
 
         return List {
-            Section {
-                EmptyView()
-            } header: {
-                Text("Transactions (by Group)")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(.primary)
-            }
-
             ForEach(allGroupNames, id: \.self) { sectionName in
                 let sectionItems = grouped[sectionName] ?? []
                 let sectionTotal = sectionItems.reduce(0.0) { $0 + $1.estimatedCost }
@@ -235,7 +230,14 @@ struct ContentView: View {
                 }
                 .navigationTitle(name)
                 .navigationBarTitleDisplayMode(.inline)
-                .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close") { presentedGroupName = nil } } }
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Close") { presentedGroupName = nil }
+                    }
+                    ToolbarItem(placement: .primaryAction) {
+                        EditButton()
+                    }
+                }
             }
             .presentationDetents([.medium, .large])
         }
@@ -581,4 +583,3 @@ private struct MonthCell: View {
     ContentView()
         .modelContainer(for: UsageEntry.self, inMemory: true)
 }
-
