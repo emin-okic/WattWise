@@ -21,6 +21,7 @@ struct ContentView: View {
     @State private var showingAddGroupAlert = false
     @State private var newGroupName = ""
     @State private var collapsedGroups: Set<String> = []
+    @State private var presentedGroupName: String? = nil
 
     private var selectedBudget: MonthlyBudget? {
         monthlyBudgets.first { $0.month == selectedMonth && $0.year == selectedYear }
@@ -136,55 +137,27 @@ struct ContentView: View {
         }
         let grouped = Dictionary(grouping: normalizedEntries) { $0.group?.name ?? "Home" }
         let sortedSectionNames = grouped.keys.sorted()
+        let allGroupNames = Array(Set(sortedSectionNames).union(groups.map { $0.name })).sorted()
 
         return List {
-            ForEach(sortedSectionNames, id: \.self) { sectionName in
-                let sectionTotal = (grouped[sectionName] ?? []).reduce(0.0) { $0 + $1.estimatedCost }
+            Section {
+                EmptyView()
+            } header: {
+                Text("Transactions (by Group)")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.primary)
+            }
+
+            ForEach(allGroupNames, id: \.self) { sectionName in
+                let sectionItems = grouped[sectionName] ?? []
+                let sectionTotal = sectionItems.reduce(0.0) { $0 + $1.estimatedCost }
                 Section {
-                    if !collapsedGroups.contains(sectionName) {
-                        let items = grouped[sectionName] ?? []
-                        ForEach(items) { entry in
-                            VStack(alignment: .leading, spacing: 6) {
-                                Label(
-                                    entry.appliance.rawValue,
-                                    systemImage: icon(for: entry.appliance)
-                                )
-                                .font(.headline)
-
-                                Text("\(entry.kWh, specifier: "%.2f") kWh")
-
-                                Text(
-                                    entry.estimatedCost,
-                                    format: .currency(code: "USD")
-                                )
-                                .foregroundStyle(.green)
-
-                                Text(entry.timestamp.formatted(.dateTime.month(.abbreviated).year()))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            .padding(.vertical, 4)
-                        }
-                        .onDelete { offsets in
-                            withAnimation {
-                                let toDelete = offsets.map { items[$0] }
-                                for item in toDelete {
-                                    modelContext.delete(item)
-                                }
-                            }
-                        }
-                    }
+                    // Removed inline rendering of items and onDelete
                 } header: {
                     Button {
-                        if collapsedGroups.contains(sectionName) {
-                            collapsedGroups.remove(sectionName)
-                        } else {
-                            collapsedGroups.insert(sectionName)
-                        }
+                        presentedGroupName = sectionName
                     } label: {
                         HStack {
-                            Image(systemName: collapsedGroups.contains(sectionName) ? "chevron.right" : "chevron.down")
-                                .foregroundStyle(.secondary)
                             Text(sectionName)
                                 .font(.headline)
                             Spacer()
@@ -192,9 +165,20 @@ struct ContentView: View {
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(.secondary)
                         }
-                        .contentShape(Rectangle())
+                        .padding(.vertical, 6)
+                        .padding(.horizontal, 8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(Color(UIColor.systemGray6))
+                        )
+                        .overlay(alignment: .bottom) {
+                            Rectangle()
+                                .fill(Color.secondary.opacity(0.15))
+                                .frame(height: 1)
+                        }
                     }
                     .buttonStyle(.plain)
+                    .padding(.vertical, 4)
                 }
             }
             
@@ -222,6 +206,36 @@ struct ContentView: View {
             }
         }
         .listStyle(.insetGrouped)
+        .sheet(isPresented: Binding(get: { presentedGroupName != nil }, set: { if !$0 { presentedGroupName = nil } })) {
+            let name = presentedGroupName ?? ""
+            let items = grouped[name] ?? []
+            NavigationStack {
+                List {
+                    ForEach(items) { entry in
+                        VStack(alignment: .leading, spacing: 6) {
+                            Label(entry.appliance.rawValue, systemImage: icon(for: entry.appliance))
+                                .font(.headline)
+                            Text("\(entry.kWh, specifier: "%.2f") kWh")
+                            Text(entry.estimatedCost, format: .currency(code: "USD")).foregroundStyle(.green)
+                            Text(entry.timestamp.formatted(.dateTime.month(.abbreviated).year()))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .onDelete { offsets in
+                        withAnimation {
+                            let toDelete = offsets.map { items[$0] }
+                            for item in toDelete { modelContext.delete(item) }
+                        }
+                    }
+                }
+                .navigationTitle(name)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close") { presentedGroupName = nil } } }
+            }
+            .presentationDetents([.medium, .large])
+        }
     }
 
     private func deleteItems(offsets: IndexSet) {
