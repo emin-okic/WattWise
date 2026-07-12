@@ -56,15 +56,6 @@ struct ContentView: View {
             // Summary Tab
             NavigationStack {
                 EnergySummaryView(entries: entriesForSelection)
-                    .toolbar {
-                        ToolbarItem(placement: .primaryAction) {
-                            Button {
-                                showingAddUsageEntry = true
-                            } label: {
-                                Label("Add Item", systemImage: "plus")
-                            }
-                        }
-                    }
             }
             .tabItem {
                 Label("Summary", systemImage: "chart.pie")

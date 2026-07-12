@@ -53,7 +53,7 @@ struct EnergySummaryView: View {
 
     private var donutCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Cost by Appliance").font(.headline)
+            Text("Cost by Group").font(.headline)
             donutChart
                 .frame(height: 220)
         }
@@ -95,6 +95,14 @@ struct EnergySummaryView: View {
             .sorted { $0.cost > $1.cost }
     }
 
+    private var byGroup: [(name: String, cost: Double)] {
+        let groups = Dictionary(grouping: filtered) { (e: UsageEntry) in
+            e.group?.name ?? "Uncategorized"
+        }
+        return groups.map { (key, vals) in (name: key, cost: vals.reduce(0) { $0 + $1.estimatedCost }) }
+            .sorted { $0.cost > $1.cost }
+    }
+
     private var byDay: [(date: Date, kWh: Double)] {
         let cal = Calendar.current
         let groups = Dictionary(grouping: filtered) { e in
@@ -122,16 +130,16 @@ struct EnergySummaryView: View {
 
     private var donutChart: some View {
         Group {
-            if byAppliance.isEmpty {
+            if byGroup.isEmpty {
                 Text("No data for selected range").foregroundStyle(.secondary)
             } else {
-                Chart(byAppliance, id: \.appliance) { item in
+                Chart(byGroup, id: \.name) { item in
                     SectorMark(
                         angle: .value("Cost", item.cost),
                         innerRadius: .ratio(0.6),
                         outerRadius: .ratio(1.0)
                     )
-                    .foregroundStyle(by: .value("Appliance", item.appliance.rawValue))
+                    .foregroundStyle(by: .value("Group", item.name))
                 }
                 .chartLegend(position: .bottom, alignment: .leading)
                 .chartBackground { _ in
@@ -141,7 +149,7 @@ struct EnergySummaryView: View {
                     }
                     .accessibilityHidden(true)
                 }
-                .accessibilityLabel(Text("Cost distribution by appliance"))
+                .accessibilityLabel(Text("Cost distribution by group"))
             }
         }
     }
