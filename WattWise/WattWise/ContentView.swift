@@ -87,6 +87,11 @@ struct ContentView: View {
                         modelContext.insert(g)
                         try? modelContext.save()
                     }
+                    if groups.first(where: { $0.name == "Uncategorized" }) == nil {
+                        let u = UsageGroup(name: "Uncategorized")
+                        modelContext.insert(u)
+                        try? modelContext.save()
+                    }
                 }
                 .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
@@ -128,14 +133,14 @@ struct ContentView: View {
     }
 
     private var transactionsList: some View {
-        let homeGroup = groups.first { $0.name == "Home" }
+        let uncategorizedGroup = groups.first { $0.name == "Uncategorized" }
         let normalizedEntries: [UsageEntry] = entriesForSelection.map { e in
-            if e.group == nil, let home = homeGroup {
-                e.group = home
+            if e.group == nil, let unc = uncategorizedGroup {
+                e.group = unc
             }
             return e
         }
-        let grouped = Dictionary(grouping: normalizedEntries) { $0.group?.name ?? "Home" }
+        let grouped = Dictionary(grouping: normalizedEntries) { $0.group?.name ?? "Uncategorized" }
         let sortedSectionNames = grouped.keys.sorted()
         let allGroupNames = Array(Set(sortedSectionNames).union(groups.map { $0.name })).sorted()
 
@@ -151,35 +156,33 @@ struct ContentView: View {
             ForEach(allGroupNames, id: \.self) { sectionName in
                 let sectionItems = grouped[sectionName] ?? []
                 let sectionTotal = sectionItems.reduce(0.0) { $0 + $1.estimatedCost }
-                Section {
-                    // Removed inline rendering of items and onDelete
-                } header: {
-                    Button {
-                        presentedGroupName = sectionName
-                    } label: {
-                        HStack {
-                            Text(sectionName)
-                                .font(.headline)
-                            Spacer()
-                            Text(sectionTotal, format: .currency(code: "USD"))
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(.vertical, 6)
-                        .padding(.horizontal, 8)
-                        .background(
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(Color(UIColor.systemGray6))
-                        )
-                        .overlay(alignment: .bottom) {
-                            Rectangle()
-                                .fill(Color.secondary.opacity(0.15))
-                                .frame(height: 1)
-                        }
+                Button {
+                    presentedGroupName = sectionName
+                } label: {
+                    HStack {
+                        Text(sectionName)
+                            .font(.headline)
+                        Spacer()
+                        Text(sectionTotal, format: .currency(code: "USD"))
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.secondary)
                     }
-                    .buttonStyle(.plain)
-                    .padding(.vertical, 4)
+                    .padding(.vertical, 6)
+                    .padding(.horizontal, 8)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .fill(Color(UIColor.systemBackground))
+                    )
                 }
+                .buttonStyle(.plain)
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    Button(role: .destructive) {
+                        deleteGroup(named: sectionName)
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                }
+                .padding(.vertical, 4)
             }
             
             Section {
@@ -267,6 +270,17 @@ struct ContentView: View {
             let new = MonthlyBudget(month: selectedMonth, year: selectedYear, spendGoal: goal)
             modelContext.insert(new)
         }
+    }
+    
+    private func deleteGroup(named name: String) {
+        guard let groupToDelete = groups.first(where: { $0.name == name }) else { return }
+        guard let unc = groups.first(where: { $0.name == "Uncategorized" }) else { return }
+        // Prevent deleting Uncategorized itself
+        if groupToDelete.name == "Uncategorized" { return }
+        // Reassign entries
+        for entry in groupToDelete.entries { entry.group = unc }
+        modelContext.delete(groupToDelete)
+        try? modelContext.save()
     }
 }
 

@@ -81,7 +81,11 @@ struct AddUsageEntryView: View {
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 if selectedGroup == nil {
-                    selectedGroup = groups.first { $0.name == "Home" }
+                    if let unc = groups.first(where: { $0.name == "Uncategorized" }) {
+                        selectedGroup = unc
+                    } else if let home = groups.first(where: { $0.name == "Home" }) {
+                        selectedGroup = home
+                    }
                 }
             }
             .toolbar {
@@ -104,7 +108,7 @@ struct AddUsageEntryView: View {
                             pricePerkWh: pricePerkWh
                         )
 
-                        entry.group = selectedGroup ?? groups.first { $0.name == "Home" }
+                        entry.group = selectedGroup ?? groups.first(where: { $0.name == "Uncategorized" }) ?? groups.first(where: { $0.name == "Home" })
 
                         modelContext.insert(entry)
 
