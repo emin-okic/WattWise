@@ -63,17 +63,21 @@ struct ContentView: View {
 
             // Transactions Tab
             NavigationStack {
-                ScrollView {
-                    VStack(spacing: 20) {
-                        // Month / Year control pinned at top
-                        MonthYearGridPicker(month: $selectedMonth, year: $selectedYear)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                List {
+                    // Header Section: Month picker + Budget banner
+                    Section {
+                        VStack(alignment: .leading, spacing: 12) {
+                            MonthYearGridPicker(month: $selectedMonth, year: $selectedYear)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            BudgetBannerView(spendGoal: spendGoal, spent: spent)
+                                .cardStyle()
+                        }
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color.clear)
+                    }
 
-                        // 1) Budget Banner (modernized)
-                        BudgetBannerView(spendGoal: spendGoal, spent: spent)
-                            .cardStyle()
-
-                        // 2) Goal Section (compact card)
+                    // Goal Section
+                    Section {
                         VStack(alignment: .leading, spacing: 12) {
                             HStack {
                                 Label("Monthly Goal", systemImage: "target")
@@ -85,46 +89,58 @@ struct ContentView: View {
                             }
                         }
                         .cardContainer()
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color.clear)
+                    }
 
-                        // 3) Transactions Section (grouped cards)
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack {
-                                Label("Transactions by Group", systemImage: "square.grid.2x2")
-                                    .font(.headline)
-                                Spacer()
-                            }
-
-                            TransactionsGroupedList(
-                                entries: entriesForSelection,
-                                groups: groups,
-                                onDeleteGroup: { name in
-                                    deleteGroup(named: name)
-                                },
-                                onAddGroup: { showingAddGroupAlert = true },
-                                presentedGroupName: $presentedGroupName,
-                                modelContext: modelContext
-                            )
+                    // Transactions Section
+                    Section(header:
+                        HStack {
+                            Text("Transactions by Group").font(.headline)
+                            Spacer()
+                            Image(systemName: "qrcode.viewfinder")
+                                .font(.title3)
+                                .foregroundStyle(.secondary)
                         }
-                        .cardContainer()
+                    ) {
+                        TransactionsGroupedList(
+                            entries: entriesForSelection,
+                            groups: groups,
+                            onDeleteGroup: { name in
+                                deleteGroup(named: name)
+                            },
+                            onAddGroup: { showingAddGroupAlert = true },
+                            presentedGroupName: $presentedGroupName,
+                            modelContext: modelContext
+                        )
 
-                        Spacer(minLength: 12)
+                        Button(action: { showingAddGroupAlert = true }) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "plus")
+                                Text("Add New Group")
+                                    .font(.headline)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 14)
+                            .background(
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .fill(Color(UIColor.systemGray6))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .stroke(Color.blue.opacity(0.5), lineWidth: 1)
+                            )
+                            .shadow(color: Color.black.opacity(0.06), radius: 4, x: 0, y: 2)
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.top, 8)
+                        .padding(.bottom, 20)
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color(UIColor.systemBackground))
                     }
-                    .padding(.horizontal)
-                    .padding(.vertical, 12)
                 }
-                .overlay(alignment: .bottomTrailing) {
-                    Button {
-                        showingAddUsageEntry = true
-                    } label: {
-                        Image(systemName: "plus")
-                            .font(.title2.weight(.semibold))
-                            .foregroundStyle(.white)
-                            .padding(16)
-                            .background(Circle().fill(Color.accentColor.gradient))
-                            .shadow(radius: 8)
-                    }
-                    .padding()
-                }
+                .listStyle(.insetGrouped)
                 .onAppear {
                     if groups.first(where: { $0.name == "Home" }) == nil {
                         let g = UsageGroup(name: "Home")
@@ -557,7 +573,7 @@ private struct TransactionsGroupedList: View {
         let sortedSectionNames = grouped.keys.sorted()
         let allGroupNames = Array(Set(sortedSectionNames).union(groups.map { $0.name })).sorted()
 
-        VStack(spacing: 10) {
+        Group {
             ForEach(allGroupNames, id: \.self) { sectionName in
                 let sectionItems = grouped[sectionName] ?? []
                 let sectionTotal = sectionItems.reduce(0.0) { $0 + $1.estimatedCost }
@@ -586,11 +602,7 @@ private struct TransactionsGroupedList: View {
                             .font(.footnote.weight(.semibold))
                             .foregroundStyle(.tertiary)
                     }
-                    .padding(12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(Color(UIColor.secondarySystemBackground))
-                    )
+                    .padding(.vertical, 6)
                 }
                 .buttonStyle(.plain)
                 .if(sectionName != "Uncategorized") { view in
@@ -603,27 +615,6 @@ private struct TransactionsGroupedList: View {
                     }
                 }
             }
-
-            Button {
-                onAddGroup()
-            } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "plus")
-                    Text("Add New Group")
-                }
-                .frame(maxWidth: .infinity)
-                .padding(12)
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color(UIColor.systemGray6))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.blue.opacity(0.5), lineWidth: 1.5)
-                )
-                .foregroundStyle(.secondary)
-            }
-            .buttonStyle(.plain)
         }
         .sheet(isPresented: Binding(get: { presentedGroupName != nil }, set: { if !$0 { presentedGroupName = nil } })) {
             let name = presentedGroupName ?? ""
