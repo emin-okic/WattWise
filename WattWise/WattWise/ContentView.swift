@@ -63,21 +63,84 @@ struct ContentView: View {
 
             // Transactions Tab
             NavigationStack {
-                VStack(spacing: 16) {
-                    MonthYearGridPicker(month: $selectedMonth, year: $selectedYear)
-                    BudgetBannerView(spendGoal: spendGoal, spent: spent)
-                    SpendGoalInput(spendGoal: spendGoal) { newGoal in
-                        setSpendGoal(newGoal)
+                List {
+                    // Header Section: Month picker + Budget banner
+                    Section {
+                        VStack(alignment: .leading, spacing: 12) {
+                            MonthYearGridPicker(month: $selectedMonth, year: $selectedYear)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            BudgetBannerView(spendGoal: spendGoal, spent: spent)
+                                .cardStyle()
+                        }
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color.clear)
                     }
-                    HStack {
-                        Text("Transactions (by Group)")
-                            .font(.title3.weight(.semibold))
-                        Spacer()
+
+                    // Goal Section
+                    Section {
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack {
+                                Label("Monthly Goal", systemImage: "target")
+                                    .font(.headline)
+                                Spacer()
+                            }
+                            SpendGoalInput(spendGoal: spendGoal) { newGoal in
+                                setSpendGoal(newGoal)
+                            }
+                        }
+                        .cardContainer()
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color.clear)
                     }
-                    .padding(.top, 4)
-                    transactionsList
+
+                    // Transactions Section
+                    Section(header:
+                        HStack {
+                            Text("Transactions by Group").font(.headline)
+                            Spacer()
+                            Image(systemName: "qrcode.viewfinder")
+                                .font(.title3)
+                                .foregroundStyle(.secondary)
+                        }
+                    ) {
+                        TransactionsGroupedList(
+                            entries: entriesForSelection,
+                            groups: groups,
+                            onDeleteGroup: { name in
+                                deleteGroup(named: name)
+                            },
+                            onAddGroup: { showingAddGroupAlert = true },
+                            presentedGroupName: $presentedGroupName,
+                            modelContext: modelContext
+                        )
+
+                        Button(action: { showingAddGroupAlert = true }) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "plus")
+                                Text("Add New Group")
+                                    .font(.headline)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 14)
+                            .background(
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .fill(Color(UIColor.systemGray6))
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .stroke(Color.blue.opacity(0.5), lineWidth: 1)
+                            )
+                            .shadow(color: Color.black.opacity(0.06), radius: 4, x: 0, y: 2)
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.top, 8)
+                        .padding(.bottom, 20)
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color(UIColor.systemBackground))
+                    }
                 }
-                .padding(.horizontal)
+                .listStyle(.insetGrouped)
                 .onAppear {
                     if groups.first(where: { $0.name == "Home" }) == nil {
                         let g = UsageGroup(name: "Home")
@@ -91,13 +154,7 @@ struct ContentView: View {
                     }
                 }
                 .toolbar {
-                    ToolbarItem(placement: .primaryAction) {
-                        Button {
-                            showingAddUsageEntry = true
-                        } label: {
-                            Label("Add Item", systemImage: "plus")
-                        }
-                    }
+                    // Removed the ToolbarItem with the plus button, keep toolbar block empty
                 }
                 .alert("New Group", isPresented: $showingAddGroupAlert) {
                     TextField("Group name", text: $newGroupName)
@@ -126,131 +183,12 @@ struct ContentView: View {
         }
     }
 
-    private var transactionsList: some View {
-        let uncategorizedGroup = groups.first { $0.name == "Uncategorized" }
-        let normalizedEntries: [UsageEntry] = entriesForSelection.map { e in
-            if e.group == nil, let unc = uncategorizedGroup {
-                e.group = unc
-            }
-            return e
-        }
-        let grouped = Dictionary(grouping: normalizedEntries) { $0.group?.name ?? "Uncategorized" }
-        let sortedSectionNames = grouped.keys.sorted()
-        let allGroupNames = Array(Set(sortedSectionNames).union(groups.map { $0.name })).sorted()
-
-        return List {
-            ForEach(allGroupNames, id: \.self) { sectionName in
-                let sectionItems = grouped[sectionName] ?? []
-                let sectionTotal = sectionItems.reduce(0.0) { $0 + $1.estimatedCost }
-                Button {
-                    presentedGroupName = sectionName
-                } label: {
-                    HStack {
-                        Text(sectionName)
-                            .font(.headline)
-                        Spacer()
-                        Text(sectionTotal, format: .currency(code: "USD"))
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.vertical, 6)
-                    .padding(.horizontal, 8)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(Color(UIColor.systemBackground))
-                    )
-                }
-                .buttonStyle(.plain)
-                .if(sectionName != "Uncategorized") { view in
-                    view.swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                        Button(role: .destructive) {
-                            deleteGroup(named: sectionName)
-                        } label: {
-                            Label("Delete", systemImage: "trash")
-                        }
-                    }
-                }
-                .padding(.vertical, 4)
-            }
-            
-            Section {
-                Button {
-                    showingAddGroupAlert = true
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "plus")
-                        Text("Add New Group")
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color(UIColor.systemGray6))
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color.blue.opacity(0.5), lineWidth: 1.5)
-                    )
-                    .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .listStyle(.insetGrouped)
-        .sheet(isPresented: Binding(get: { presentedGroupName != nil }, set: { if !$0 { presentedGroupName = nil } })) {
-            let name = presentedGroupName ?? ""
-            let items = grouped[name] ?? []
-            NavigationStack {
-                List {
-                    ForEach(items) { entry in
-                        VStack(alignment: .leading, spacing: 6) {
-                            Label(entry.appliance.rawValue, systemImage: icon(for: entry.appliance))
-                                .font(.headline)
-                            Text("\(entry.kWh, specifier: "%.2f") kWh")
-                            Text(entry.estimatedCost, format: .currency(code: "USD")).foregroundStyle(.green)
-                            Text(entry.timestamp.formatted(.dateTime.month(.abbreviated).year()))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(.vertical, 4)
-                    }
-                    .onDelete { offsets in
-                        withAnimation {
-                            let toDelete = offsets.map { items[$0] }
-                            for item in toDelete { modelContext.delete(item) }
-                        }
-                    }
-                }
-                .navigationTitle(name)
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Close") { presentedGroupName = nil }
-                    }
-                    ToolbarItem(placement: .primaryAction) {
-                        EditButton()
-                    }
-                }
-            }
-            .presentationDetents([.medium, .large])
-        }
-    }
-
     private func deleteItems(offsets: IndexSet) {
         withAnimation {
             let toDelete = offsets.map { entriesForSelection[$0] }
             for item in toDelete {
                 modelContext.delete(item)
             }
-        }
-    }
-
-    private func icon(for appliance: Appliance) -> String {
-        switch appliance {
-        case .dishwasher:
-            return "fork.knife"
-        case .washer:
-            return "tshirt"
         }
     }
 
@@ -276,6 +214,15 @@ struct ContentView: View {
         for entry in groupToDelete.entries { entry.group = unc }
         modelContext.delete(groupToDelete)
         try? modelContext.save()
+    }
+}
+
+fileprivate func icon(for appliance: Appliance) -> String {
+    switch appliance {
+    case .dishwasher:
+        return "fork.knife"
+    case .washer:
+        return "tshirt"
     }
 }
 
@@ -572,11 +519,6 @@ private struct MonthCell: View {
     }
 }
 
-#Preview {
-    ContentView()
-        .modelContainer(for: UsageEntry.self, inMemory: true)
-}
-
 private extension View {
     @ViewBuilder
     func `if`<Content: View>(_ condition: Bool, transform: (Self) -> Content) -> some View {
@@ -586,4 +528,135 @@ private extension View {
             self
         }
     }
+}
+
+private extension View {
+    func cardStyle() -> some View {
+        self
+            .padding(16)
+            .background(.thinMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .shadow(color: Color.black.opacity(0.06), radius: 6, x: 0, y: 3)
+    }
+
+    func cardContainer() -> some View {
+        self
+            .padding(16)
+            .background(.ultraThinMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(Color.secondary.opacity(0.12), lineWidth: 1)
+            )
+    }
+}
+
+private struct TransactionsGroupedList: View {
+    let entries: [UsageEntry]
+    let groups: [UsageGroup]
+    let onDeleteGroup: (String) -> Void
+    let onAddGroup: () -> Void
+    @Binding var presentedGroupName: String?
+    let modelContext: ModelContext
+
+    @State private var internalPresented: String? = nil
+
+    var body: some View {
+        let uncategorizedGroup = groups.first { $0.name == "Uncategorized" }
+        let normalizedEntries: [UsageEntry] = entries.map { e in
+            if e.group == nil, let unc = uncategorizedGroup {
+                e.group = unc
+            }
+            return e
+        }
+        let grouped = Dictionary(grouping: normalizedEntries) { $0.group?.name ?? "Uncategorized" }
+        let sortedSectionNames = grouped.keys.sorted()
+        let allGroupNames = Array(Set(sortedSectionNames).union(groups.map { $0.name })).sorted()
+
+        Group {
+            ForEach(allGroupNames, id: \.self) { sectionName in
+                let sectionItems = grouped[sectionName] ?? []
+                let sectionTotal = sectionItems.reduce(0.0) { $0 + $1.estimatedCost }
+
+                Button {
+                    presentedGroupName = sectionName
+                } label: {
+                    HStack(spacing: 12) {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .fill(Color.accentColor.opacity(0.12))
+                            Image(systemName: "folder.fill")
+                                .foregroundStyle(Color.accentColor)
+                        }
+                        .frame(width: 36, height: 36)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(sectionName)
+                                .font(.subheadline.weight(.semibold))
+                            Text(sectionTotal, format: .currency(code: "USD"))
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(.tertiary)
+                    }
+                    .padding(.vertical, 6)
+                }
+                .buttonStyle(.plain)
+                .if(sectionName != "Uncategorized") { view in
+                    view.swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            onDeleteGroup(sectionName)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: Binding(get: { presentedGroupName != nil }, set: { if !$0 { presentedGroupName = nil } })) {
+            let name = presentedGroupName ?? ""
+            let items = grouped[name] ?? []
+            NavigationStack {
+                List {
+                    ForEach(items) { entry in
+                        VStack(alignment: .leading, spacing: 6) {
+                            Label(entry.appliance.rawValue, systemImage: icon(for: entry.appliance))
+                                .font(.headline)
+                            Text("\(entry.kWh, specifier: "%.2f") kWh")
+                            Text(entry.estimatedCost, format: .currency(code: "USD")).foregroundStyle(.green)
+                            Text(entry.timestamp.formatted(.dateTime.month(.abbreviated).year()))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                    .onDelete { offsets in
+                        withAnimation {
+                            let toDelete = offsets.map { items[$0] }
+                            for item in toDelete { modelContext.delete(item) }
+                        }
+                    }
+                }
+                .navigationTitle(name)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Close") { presentedGroupName = nil }
+                    }
+                    ToolbarItem(placement: .primaryAction) {
+                        EditButton()
+                    }
+                }
+            }
+            .presentationDetents([.medium, .large])
+        }
+    }
+}
+
+#Preview {
+    ContentView()
+        .modelContainer(for: UsageEntry.self, inMemory: true)
 }
