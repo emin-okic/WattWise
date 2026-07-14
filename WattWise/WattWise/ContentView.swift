@@ -87,6 +87,7 @@ struct ContentView: View {
                             SpendGoalInput(spendGoal: spendGoal) { newGoal in
                                 setSpendGoal(newGoal)
                             }
+                            .id("goal-\(selectedYear)-\(selectedMonth)")
                         }
                         .cardContainer()
                         .listRowInsets(EdgeInsets())
@@ -300,10 +301,12 @@ private struct BudgetBannerView: View {
 }
 
 private struct SpendGoalInput: View {
+    let initialSpendGoal: Double
     @State private var spendGoal: Double
     let onCommit: (Double) -> Void
 
     init(spendGoal: Double, onCommit: @escaping (Double) -> Void) {
+        self.initialSpendGoal = spendGoal
         _spendGoal = State(initialValue: spendGoal)
         self.onCommit = onCommit
     }
@@ -339,6 +342,14 @@ private struct SpendGoalInput: View {
                 .frame(minWidth: 100)
                 .onChange(of: spendGoal) { newValue in
                     onCommit(newValue)
+                }
+                .onChange(of: initialSpendGoal) { newValue in
+                    // When parent changes month/year, reset the field to the new goal
+                    spendGoal = newValue
+                }
+                .onAppear {
+                    // Ensure correct value on initial show
+                    spendGoal = initialSpendGoal
                 }
         }
     }
