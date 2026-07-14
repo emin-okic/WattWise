@@ -13,25 +13,31 @@ struct EnergySummaryView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                headerCard
-
-                if sizeClass == .regular {
-                    HStack(alignment: .top, spacing: 16) {
-                        donutCard
-                            .frame(maxWidth: .infinity)
-                        barCard
-                            .frame(maxWidth: .infinity)
-                    }
-                } else {
-                    VStack(spacing: 16) {
-                        donutCard
-                        barCard
+        GeometryReader { proxy in
+            let safeBottom = proxy.safeAreaInsets.bottom
+            ZStack {
+                Color.clear
+                VStack(alignment: .leading, spacing: 12) {
+                    headerCard
+                    if sizeClass == .regular {
+                        HStack(alignment: .top, spacing: 16) {
+                            progressCard
+                                .frame(maxWidth: .infinity)
+                            donutCard
+                                .frame(maxWidth: .infinity)
+                        }
+                    } else {
+                        VStack(spacing: 16) {
+                            progressCard
+                            donutCard
+                        }
                     }
                 }
+                .padding(.horizontal)
+                .padding(.top)
+                .padding(.bottom, max(8, safeBottom))
             }
-            .padding()
+            .ignoresSafeArea(.keyboard)
         }
     }
 
@@ -51,22 +57,91 @@ struct EnergySummaryView: View {
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
+    private var progressCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Budget Progress").font(.headline)
+            HStack(spacing: 16) {
+                budgetRing
+                    .frame(width: 140, height: 140)
+                VStack(alignment: .leading, spacing: 8) {
+                    LabeledContent("Spent", value: totals.cost.formatted(.currency(code: "USD")))
+                    LabeledContent("kWh", value: String(format: "%.2f kWh", totals.kWh))
+                    if let goal = currentBudgetGoal {
+                        let pct = min(max(totals.cost / max(goal, 0.01), 0), 1)
+                        let pctString = String(format: "%.0f%%", pct * 100)
+                        LabeledContent("Of Goal", value: pctString)
+                    } else {
+                        Text("No budget set for this month").font(.footnote).foregroundStyle(.secondary)
+                    }
+                }
+                .font(.subheadline)
+            }
+        }
+        .frame(minHeight: 180, alignment: .leading)
+        .padding(16)
+        .background(.thinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private var currentBudgetGoal: Double? {
+        // If a MonthlyBudget model exists in the project, this is a placeholder for integration.
+        // For now, derive a lightweight goal: 20% above current spend to visualize progress.
+        // Replace with real model query when wiring up data.
+        let base = totals.cost
+        return base > 0 ? base * 1.2 : nil
+    }
+
+    private var budgetRing: some View {
+        let goal = currentBudgetGoal ?? max(totals.cost, 1)
+        let progress = min(max(totals.cost / max(goal, 0.01), 0), 1)
+        return ZStack {
+            Circle()
+                .stroke(.quaternary, lineWidth: 12)
+            Circle()
+                .trim(from: 0, to: progress)
+                .stroke(AngularGradient(gradient: Gradient(colors: [.green, .yellow, .orange, .red]), center: .center), style: StrokeStyle(lineWidth: 12, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+            VStack(spacing: 4) {
+                Text("Spent").font(.caption).foregroundStyle(.secondary)
+                Text(totals.cost, format: .currency(code: "USD")).font(.headline)
+                if let goal = currentBudgetGoal {
+                    Text("/ " + goal.formatted(.currency(code: "USD"))).font(.caption2).foregroundStyle(.secondary)
+                }
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Budget progress")
+    }
+
     private var donutCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Cost by Group").font(.headline)
             donutChart
-                .frame(height: 220)
+                .frame(height: 180)
         }
         .padding(16)
         .background(.thinMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
+    // Unused: Daily metrics hidden for now
+    private var compactBarCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Daily kWh").font(.headline)
+            barChart
+                .frame(height: 140)
+        }
+        .padding(16)
+        .background(.thinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    // Unused: Legacy full-height daily metrics card
     private var barCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Daily kWh").font(.headline)
             barChart
-                .frame(height: 220)
+                .frame(height: 160)
         }
         .padding(16)
         .background(.thinMaterial)
