@@ -22,6 +22,7 @@ struct ContentView: View {
     @State private var newGroupName = ""
     @State private var collapsedGroups: Set<String> = []
     @State private var presentedGroupName: String? = nil
+    @State private var showingAnalytics = false
 
     private var selectedBudget: MonthlyBudget? {
         monthlyBudgets.first { $0.month == selectedMonth && $0.year == selectedYear }
@@ -52,151 +53,153 @@ struct ContentView: View {
     }
 
     var body: some View {
-        TabView {
-            // Summary Tab
-            NavigationStack {
-                EnergySummaryView(entries: entriesForSelection)
-            }
-            .tabItem {
-                Label("Summary", systemImage: "chart.pie")
-            }
-
-            // Transactions Tab
-            NavigationStack {
-                List {
-                    // Header Section: Month picker + Budget banner
-                    Section {
-                        VStack(alignment: .leading, spacing: 12) {
-                            MonthYearGridPicker(month: $selectedMonth, year: $selectedYear)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            BudgetBannerView(spendGoal: spendGoal, spent: spent)
-                                .cardStyle()
-                        }
-                        .listRowInsets(EdgeInsets())
-                        .listRowBackground(Color.clear)
-                    }
-
-                    // Goal Section
-                    Section {
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack {
-                                Label("Monthly Goal", systemImage: "target")
-                                    .font(.headline)
-                                Spacer()
-                            }
-                            SpendGoalInput(spendGoal: spendGoal) { newGoal in
-                                setSpendGoal(newGoal)
-                            }
-                            .id("goal-\(selectedYear)-\(selectedMonth)")
-                        }
-                        .cardContainer()
-                        .listRowInsets(EdgeInsets())
-                        .listRowBackground(Color.clear)
-                    }
-
-                    // Transactions Section
-                    Section(header:
-                        HStack {
-                            Text("Transactions by Group").font(.headline)
-                            Spacer()
-                            Image(systemName: "qrcode.viewfinder")
-                                .font(.title3)
-                                .foregroundStyle(.secondary)
-                        }
-                    ) {
-                        TransactionsGroupedList(
-                            entries: entriesForSelection,
-                            groups: groups,
-                            onDeleteGroup: { name in
-                                deleteGroup(named: name)
-                            },
-                            onAddGroup: { showingAddGroupAlert = true },
-                            presentedGroupName: $presentedGroupName,
-                            modelContext: modelContext
-                        )
-
-                        Button(action: { showingAddGroupAlert = true }) {
-                            HStack(spacing: 8) {
-                                Image(systemName: "plus")
-                                Text("Add New Group")
-                                    .font(.headline)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 14)
-                            .background(
-                                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                    .fill(Color(UIColor.systemGray6))
-                            )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                    .stroke(Color.blue.opacity(0.5), lineWidth: 1)
-                            )
-                            .shadow(color: Color.black.opacity(0.06), radius: 4, x: 0, y: 2)
-                        }
-                        .buttonStyle(.plain)
-                        .padding(.top, 8)
-                        .padding(.bottom, 20)
-                        .listRowInsets(EdgeInsets())
-                        .listRowBackground(Color(UIColor.systemBackground))
-                    }
+        // Consolidated Transactions Screen (no nav bar, no tabs)
+        List {
+            // Header Section: Month picker + Budget banner
+            Section {
+                VStack(alignment: .leading, spacing: 12) {
+                    MonthYearGridPicker(month: $selectedMonth, year: $selectedYear)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    BudgetBannerView(spendGoal: spendGoal, spent: spent)
+                        .cardStyle()
                 }
-                .listStyle(.insetGrouped)
-                .overlay(alignment: .bottomLeading) {
-                    Button(action: { showingAddUsageEntry = true }) {
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
+            }
+
+            // Goal Section
+            Section {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Label("Monthly Goal", systemImage: "target")
+                            .font(.headline)
+                        Spacer()
+                    }
+                    SpendGoalInput(spendGoal: spendGoal) { newGoal in
+                        setSpendGoal(newGoal)
+                    }
+                    .id("goal-\(selectedYear)-\(selectedMonth)")
+                }
+                .cardContainer()
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
+            }
+
+            // Transactions Section
+            Section(header:
+                HStack {
+                    Text("Transactions by Group").font(.headline)
+                    Spacer()
+                    Image(systemName: "qrcode.viewfinder")
+                        .font(.title3)
+                        .foregroundStyle(.secondary)
+                }
+            ) {
+                TransactionsGroupedList(
+                    entries: entriesForSelection,
+                    groups: groups,
+                    onDeleteGroup: { name in
+                        deleteGroup(named: name)
+                    },
+                    onAddGroup: { showingAddGroupAlert = true },
+                    presentedGroupName: $presentedGroupName,
+                    modelContext: modelContext
+                )
+
+                Button(action: { showingAddGroupAlert = true }) {
+                    HStack(spacing: 8) {
                         Image(systemName: "plus")
-                            .font(.system(size: 22, weight: .bold))
-                            .foregroundColor(.white)
-                            .padding(20)
-                            .background(
-                                Circle()
-                                    .fill(Color.accentColor)
-                            )
-                            .shadow(color: Color.black.opacity(0.2), radius: 6, x: 0, y: 4)
+                        Text("Add New Group")
+                            .font(.headline)
                     }
-                    .accessibilityLabel("Add Energy Transaction")
-                    .padding(.leading, 16)
-                    .padding(.bottom, 16)
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 14)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .fill(Color(UIColor.systemGray6))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(Color.blue.opacity(0.5), lineWidth: 1)
+                    )
+                    .shadow(color: Color.black.opacity(0.06), radius: 4, x: 0, y: 2)
                 }
-                .onAppear {
-                    if groups.first(where: { $0.name == "Home" }) == nil {
-                        let g = UsageGroup(name: "Home")
-                        modelContext.insert(g)
-                        try? modelContext.save()
-                    }
-                    if groups.first(where: { $0.name == "Uncategorized" }) == nil {
-                        let u = UsageGroup(name: "Uncategorized")
-                        modelContext.insert(u)
-                        try? modelContext.save()
-                    }
-                }
-                .toolbar {
-                    // Removed the ToolbarItem with the plus button, keep toolbar block empty
-                }
-                .alert("New Group", isPresented: $showingAddGroupAlert) {
-                    TextField("Group name", text: $newGroupName)
-                    Button("Add") {
-                        let name = newGroupName.trimmingCharacters(in: .whitespacesAndNewlines)
-                        guard !name.isEmpty else { return }
-                        if !groups.contains(where: { $0.name.caseInsensitiveCompare(name) == .orderedSame }) {
-                            modelContext.insert(UsageGroup(name: name))
-                            try? modelContext.save()
-                        }
-                        newGroupName = ""
-                    }
-                    Button("Cancel", role: .cancel) {
-                        newGroupName = ""
-                    }
-                } message: {
-                    Text("Create a room/area category like Kitchen, Bathroom, Living Room.")
-                }
+                .buttonStyle(.plain)
+                .padding(.top, 8)
+                .padding(.bottom, 20)
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color(UIColor.systemBackground))
             }
-            .tabItem {
-                Label("Transactions", systemImage: "list.bullet")
+        }
+        .listStyle(.insetGrouped)
+        .overlay(alignment: .bottomLeading) {
+            VStack(spacing: 12) {
+                Button(action: { showingAnalytics = true }) {
+                    Image(systemName: "chart.bar.fill")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(.white)
+                        .padding(18)
+                        .background(
+                            Circle()
+                                .fill(Color.purple)
+                        )
+                        .shadow(color: Color.black.opacity(0.2), radius: 6, x: 0, y: 4)
+                }
+                .accessibilityLabel("Show Analytics")
+
+                Button(action: { showingAddUsageEntry = true }) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundColor(.white)
+                        .padding(20)
+                        .background(
+                            Circle()
+                                .fill(Color.accentColor)
+                        )
+                        .shadow(color: Color.black.opacity(0.2), radius: 6, x: 0, y: 4)
+                }
+                .accessibilityLabel("Add Energy Transaction")
             }
+            .padding(.leading, 16)
+            .padding(.bottom, 16)
+        }
+        .onAppear {
+            if groups.first(where: { $0.name == "Home" }) == nil {
+                let g = UsageGroup(name: "Home")
+                modelContext.insert(g)
+                try? modelContext.save()
+            }
+            if groups.first(where: { $0.name == "Uncategorized" }) == nil {
+                let u = UsageGroup(name: "Uncategorized")
+                modelContext.insert(u)
+                try? modelContext.save()
+            }
+        }
+        .alert("New Group", isPresented: $showingAddGroupAlert) {
+            TextField("Group name", text: $newGroupName)
+            Button("Add") {
+                let name = newGroupName.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !name.isEmpty else { return }
+                if !groups.contains(where: { $0.name.caseInsensitiveCompare(name) == .orderedSame }) {
+                    modelContext.insert(UsageGroup(name: name))
+                    try? modelContext.save()
+                }
+                newGroupName = ""
+            }
+            Button("Cancel", role: .cancel) {
+                newGroupName = ""
+            }
+        } message: {
+            Text("Create a room/area category like Kitchen, Bathroom, Living Room.")
         }
         .sheet(isPresented: $showingAddUsageEntry) {
             AddUsageEntryView()
+        }
+        .sheet(isPresented: $showingAnalytics) {
+            EnergySummaryView(entries: entriesForSelection)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
         }
     }
 
