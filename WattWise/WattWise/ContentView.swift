@@ -142,6 +142,22 @@ struct ContentView: View {
                     }
                 }
                 .listStyle(.insetGrouped)
+                .overlay(alignment: .bottomLeading) {
+                    Button(action: { showingAddUsageEntry = true }) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(20)
+                            .background(
+                                Circle()
+                                    .fill(Color.accentColor)
+                            )
+                            .shadow(color: Color.black.opacity(0.2), radius: 6, x: 0, y: 4)
+                    }
+                    .accessibilityLabel("Add Energy Transaction")
+                    .padding(.leading, 16)
+                    .padding(.bottom, 16)
+                }
                 .onAppear {
                     if groups.first(where: { $0.name == "Home" }) == nil {
                         let g = UsageGroup(name: "Home")
@@ -671,3 +687,4 @@ private struct TransactionsGroupedList: View {
     ContentView()
         .modelContainer(for: UsageEntry.self, inMemory: true)
 }
+
