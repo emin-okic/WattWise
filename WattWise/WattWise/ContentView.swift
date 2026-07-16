@@ -90,23 +90,17 @@ struct ContentView: View {
                 HStack {
                     Text("Transactions by Group").font(.headline)
                     Spacer()
-                    HStack(spacing: 12) {
-                        Button {
-                            showingAddGroupAlert = true
-                        } label: {
-                            Label("Add Group", systemImage: "folder.badge.plus")
-                                .labelStyle(.iconOnly)
-                                .font(.title3)
-                        }
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                        .tint(.accentColor)
-                        .accessibilityLabel("Add New Group")
-
-                        Image(systemName: "qrcode.viewfinder")
+                    Button {
+                        showingAddGroupAlert = true
+                    } label: {
+                        Label("Add Group", systemImage: "folder.badge.plus")
+                            .labelStyle(.iconOnly)
                             .font(.title3)
-                            .foregroundStyle(.secondary)
                     }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .tint(.accentColor)
+                    .accessibilityLabel("Add New Group")
                 }
             ) {
                 TransactionsGroupedList(
