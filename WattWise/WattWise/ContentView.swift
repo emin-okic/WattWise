@@ -181,6 +181,8 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showingAddUsageEntry) {
             AddUsageEntryView()
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $showingAnalytics) {
             EnergySummaryView(entries: entriesForSelection)
