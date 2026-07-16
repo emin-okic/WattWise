@@ -231,6 +231,8 @@ fileprivate func icon(for appliance: Appliance) -> String {
         return "fork.knife"
     case .washer:
         return "tshirt"
+    case .dryer:
+        return "wind"
     }
 }
 
