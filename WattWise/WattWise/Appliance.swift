@@ -13,4 +13,6 @@ enum Appliance: String, Codable, CaseIterable {
     
     case washer = "Clothes Washer"
     
+    case dryer = "Clothes Dryer"
+    
 }
