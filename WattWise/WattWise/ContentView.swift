@@ -90,9 +90,23 @@ struct ContentView: View {
                 HStack {
                     Text("Transactions by Group").font(.headline)
                     Spacer()
-                    Image(systemName: "qrcode.viewfinder")
-                        .font(.title3)
-                        .foregroundStyle(.secondary)
+                    HStack(spacing: 12) {
+                        Button {
+                            showingAddGroupAlert = true
+                        } label: {
+                            Label("Add Group", systemImage: "folder.badge.plus")
+                                .labelStyle(.iconOnly)
+                                .font(.title3)
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                        .tint(.accentColor)
+                        .accessibilityLabel("Add New Group")
+
+                        Image(systemName: "qrcode.viewfinder")
+                            .font(.title3)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             ) {
                 TransactionsGroupedList(
@@ -105,31 +119,6 @@ struct ContentView: View {
                     presentedGroupName: $presentedGroupName,
                     modelContext: modelContext
                 )
-
-                Button(action: { showingAddGroupAlert = true }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "plus")
-                        Text("Add New Group")
-                            .font(.headline)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 14)
-                    .background(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(Color(UIColor.systemGray6))
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .stroke(Color.blue.opacity(0.5), lineWidth: 1)
-                    )
-                    .shadow(color: Color.black.opacity(0.06), radius: 4, x: 0, y: 2)
-                }
-                .buttonStyle(.plain)
-                .padding(.top, 8)
-                .padding(.bottom, 20)
-                .listRowInsets(EdgeInsets())
-                .listRowBackground(Color(UIColor.systemBackground))
             }
         }
         .listStyle(.insetGrouped)
