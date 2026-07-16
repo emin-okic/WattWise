@@ -116,6 +116,9 @@ struct ContentView: View {
             }
         }
         .listStyle(.insetGrouped)
+        .safeAreaInset(edge: .bottom) {
+            Color.clear.frame(height: 150)
+        }
         .overlay(alignment: .bottomLeading) {
             VStack(spacing: 12) {
                 Button(action: { showingAnalytics = true }) {
@@ -594,14 +597,15 @@ private struct TransactionsGroupedList: View {
                 Button {
                     presentedGroupName = sectionName
                 } label: {
-                    HStack(spacing: 12) {
+                    HStack(spacing: 10) {
                         ZStack {
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            Circle()
                                 .fill(Color.accentColor.opacity(0.12))
                             Image(systemName: "folder.fill")
+                                .font(.system(size: 14, weight: .semibold))
                                 .foregroundStyle(Color.accentColor)
                         }
-                        .frame(width: 36, height: 36)
+                        .frame(width: 30, height: 30)
 
                         VStack(alignment: .leading, spacing: 2) {
                             Text(sectionName)
@@ -615,7 +619,7 @@ private struct TransactionsGroupedList: View {
                             .font(.footnote.weight(.semibold))
                             .foregroundStyle(.tertiary)
                     }
-                    .padding(.vertical, 6)
+                    .padding(.vertical, 4)
                 }
                 .buttonStyle(.plain)
                 .if(sectionName != "Uncategorized") { view in
