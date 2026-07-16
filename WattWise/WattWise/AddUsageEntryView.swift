@@ -33,9 +33,9 @@ struct AddUsageEntryView: View {
     @State private var step: AddEntryStep = .group
     @State private var selectedGroup: UsageGroup? = nil
     @State private var selectedGroupIndex: Int = 0
-    @State private var appliance: Appliance = .dishwasher
-    @State private var kWh: Double = 1.20
-    @State private var pricePerkWh: Double = 0.14
+    @State private var appliance: Appliance = .dryer
+    @State private var kWh: Double = 3.0
+    @State private var pricePerkWh: Double = 0.16
     @State private var showCelebration: Bool = false
 
     private var estimatedCost: Double {
@@ -123,12 +123,21 @@ struct AddUsageEntryView: View {
                           let idx = groups.firstIndex(where: { $0.name == group.name }) {
                     selectedGroupIndex = idx
                 }
+                kWh = defaultKWh(for: appliance)
             }
             .safeAreaInset(edge: .bottom) {
                 bottomToolbar
                     .background(.ultraThinMaterial)
                     .padding(.top, 6)
             }
+        }
+    }
+
+    private func defaultKWh(for appliance: Appliance) -> Double {
+        switch appliance {
+        case .dishwasher: return 1.2
+        case .washer: return 0.5
+        case .dryer: return 3.0
         }
     }
 
@@ -174,6 +183,9 @@ struct AddUsageEntryView: View {
                     }
                 }
                 .pickerStyle(.wheel)
+                .onChange(of: appliance) { newAppliance in
+                    kWh = defaultKWh(for: newAppliance)
+                }
                 .accessibilityLabel("Select appliance type")
             }
         }
@@ -468,3 +480,4 @@ private extension View {
     return AddUsageEntryView()
         .modelContainer(container)
 }
+
