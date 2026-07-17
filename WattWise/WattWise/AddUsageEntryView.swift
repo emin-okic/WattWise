@@ -220,45 +220,57 @@ struct AddUsageEntryView: View {
     private var energyStepView: some View {
         Group {
             if appliance == .refrigerator {
-                Form {
-                    Section("Fridge Interval") {
-                        Picker("Interval", selection: $fridgeInterval) {
-                            ForEach(FridgeInterval.allCases) { interval in
-                                Text(interval.rawValue).tag(interval)
-                            }
-                        }
-                        .pickerStyle(.segmented)
-                        .accessibilityLabel("Select cost interval for refrigerator")
-                        .onChange(of: fridgeInterval) { newVal in
-                            // Keep kWh in sync with interval
-                            kWh = newVal.kWh
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Refrigerator Energy")
+                        .font(.headline)
+                    Picker("Interval", selection: $fridgeInterval) {
+                        ForEach(FridgeInterval.allCases) { interval in
+                            Text(interval.rawValue).tag(interval)
                         }
                     }
-                    Section("Estimated Energy (kWh)") {
-                        HStack {
-                            Text("kWh for \(fridgeInterval.rawValue.replacingOccurrences(of: "Per ", with: ""))")
-                            Spacer()
-                            Text(kWh, format: .number.precision(.fractionLength(2)))
-                                .foregroundStyle(.secondary)
-                        }
-                        .accessibilityElement(children: .combine)
-                        .accessibilityLabel("Estimated kilowatt-hours for selected interval")
+                    .pickerStyle(.segmented)
+                    .accessibilityLabel("Select cost interval for refrigerator")
+                    .onChange(of: fridgeInterval) { newVal in
+                        // Keep kWh in sync with interval
+                        kWh = newVal.kWh
                     }
-                    Section("Electric Rate ($/kWh)") {
-                        TextField("Electric Rate ($/kWh)", value: $pricePerkWh, format: .number)
+
+                    HStack {
+                        Text("kWh for \(fridgeInterval.rawValue.replacingOccurrences(of: "Per ", with: ""))")
+                        Spacer()
+                        Text(kWh, format: .number.precision(.fractionLength(2)))
+                            .foregroundStyle(.secondary)
+                    }
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("Estimated kilowatt-hours for selected interval")
+
+                    HStack {
+                        Text("Rate ($/kWh)")
+                        Spacer()
+                        TextField("0.16", value: $pricePerkWh, format: .number)
                             .keyboardType(.decimalPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 90)
                             .accessibilityLabel("Electric rate per kilowatt-hour")
                     }
-                    Section("Estimated Cost") {
-                        let cost = kWh * pricePerkWh
-                        Text(cost, format: .currency(code: "USD").precision(.fractionLength(2)))
+
+                    Divider().padding(.vertical, 2)
+
+                    HStack {
+                        Text("Estimated Cost")
+                        Spacer()
+                        Text(kWh * pricePerkWh, format: .currency(code: "USD").precision(.fractionLength(2)))
                             .font(.headline)
                             .foregroundStyle(.tint)
                             .accessibilityLabel("Estimated cost for selected interval")
                     }
                 }
-                .listStyle(.plain)
-                .frame(maxHeight: 300)
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(Color(.secondarySystemGroupedBackground))
+                )
+                .frame(maxHeight: 220)
                 .onAppear {
                     // Initialize kWh based on default interval when arriving at this step
                     if appliance == .refrigerator {
