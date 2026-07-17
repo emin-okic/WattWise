@@ -36,7 +36,22 @@ struct AddUsageEntryView: View {
     @State private var appliance: Appliance = .dryer
     @State private var kWh: Double = 3.0
     @State private var pricePerkWh: Double = 0.16
+    @State private var fridgeInterval: FridgeInterval = .day
     @State private var showCelebration: Bool = false
+
+    enum FridgeInterval: String, CaseIterable, Identifiable {
+        case day = "Per Day"
+        case week = "Per Week"
+        case month = "Per Month"
+        var id: String { rawValue }
+        var kWh: Double {
+            switch self {
+            case .day: return 1.2 // ~1.2 kWh per day for a modern fridge
+            case .week: return 1.2 * 7 // ~8.4 kWh per week
+            case .month: return 36.0 // ~36 kWh per month (~1.2 * 30)
+            }
+        }
+    }
 
     private var estimatedCost: Double {
         kWh * pricePerkWh
@@ -49,7 +64,11 @@ struct AddUsageEntryView: View {
         case .appliance:
             return false // appliance always has a default value
         case .energy:
-            return kWh <= 0 || pricePerkWh <= 0
+            if appliance == .refrigerator {
+                return pricePerkWh <= 0 // kWh is derived from interval
+            } else {
+                return kWh <= 0 || pricePerkWh <= 0
+            }
         case .review:
             return false
         }
@@ -138,6 +157,7 @@ struct AddUsageEntryView: View {
         case .dishwasher: return 1.2
         case .washer: return 0.5
         case .dryer: return 3.0
+        case .refrigerator: return 1.2
         }
     }
 
@@ -184,7 +204,11 @@ struct AddUsageEntryView: View {
                 }
                 .pickerStyle(.wheel)
                 .onChange(of: appliance) { newAppliance in
-                    kWh = defaultKWh(for: newAppliance)
+                    if newAppliance == .refrigerator {
+                        kWh = fridgeInterval.kWh
+                    } else {
+                        kWh = defaultKWh(for: newAppliance)
+                    }
                 }
                 .accessibilityLabel("Select appliance type")
             }
@@ -194,20 +218,70 @@ struct AddUsageEntryView: View {
     }
 
     private var energyStepView: some View {
-        Form {
-            Section("Energy Used (kWh)") {
-                TextField("Energy Used (kWh)", value: $kWh, format: .number)
-                    .keyboardType(.decimalPad)
-                    .accessibilityLabel("Energy used in kilowatt-hours")
-            }
-            Section("Electric Rate ($/kWh)") {
-                TextField("Electric Rate ($/kWh)", value: $pricePerkWh, format: .number)
-                    .keyboardType(.decimalPad)
-                    .accessibilityLabel("Electric rate per kilowatt-hour")
+        Group {
+            if appliance == .refrigerator {
+                Form {
+                    Section("Fridge Interval") {
+                        Picker("Interval", selection: $fridgeInterval) {
+                            ForEach(FridgeInterval.allCases) { interval in
+                                Text(interval.rawValue).tag(interval)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .accessibilityLabel("Select cost interval for refrigerator")
+                        .onChange(of: fridgeInterval) { newVal in
+                            // Keep kWh in sync with interval
+                            kWh = newVal.kWh
+                        }
+                    }
+                    Section("Estimated Energy (kWh)") {
+                        HStack {
+                            Text("kWh for \(fridgeInterval.rawValue.replacingOccurrences(of: "Per ", with: ""))")
+                            Spacer()
+                            Text(kWh, format: .number.precision(.fractionLength(2)))
+                                .foregroundStyle(.secondary)
+                        }
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel("Estimated kilowatt-hours for selected interval")
+                    }
+                    Section("Electric Rate ($/kWh)") {
+                        TextField("Electric Rate ($/kWh)", value: $pricePerkWh, format: .number)
+                            .keyboardType(.decimalPad)
+                            .accessibilityLabel("Electric rate per kilowatt-hour")
+                    }
+                    Section("Estimated Cost") {
+                        let cost = kWh * pricePerkWh
+                        Text(cost, format: .currency(code: "USD").precision(.fractionLength(2)))
+                            .font(.headline)
+                            .foregroundStyle(.tint)
+                            .accessibilityLabel("Estimated cost for selected interval")
+                    }
+                }
+                .listStyle(.plain)
+                .frame(maxHeight: 300)
+                .onAppear {
+                    // Initialize kWh based on default interval when arriving at this step
+                    if appliance == .refrigerator {
+                        kWh = fridgeInterval.kWh
+                    }
+                }
+            } else {
+                Form {
+                    Section("Energy Used (kWh)") {
+                        TextField("Energy Used (kWh)", value: $kWh, format: .number)
+                            .keyboardType(.decimalPad)
+                            .accessibilityLabel("Energy used in kilowatt-hours")
+                    }
+                    Section("Electric Rate ($/kWh)") {
+                        TextField("Electric Rate ($/kWh)", value: $pricePerkWh, format: .number)
+                            .keyboardType(.decimalPad)
+                            .accessibilityLabel("Electric rate per kilowatt-hour")
+                    }
+                }
+                .listStyle(.plain)
+                .frame(maxHeight: 250)
             }
         }
-        .listStyle(.plain)
-        .frame(maxHeight: 250)
     }
 
     private var reviewStepView: some View {
@@ -226,6 +300,15 @@ struct AddUsageEntryView: View {
                     Spacer()
                     Text(appliance.rawValue)
                         .foregroundColor(.secondary)
+                }
+                if appliance == .refrigerator {
+                    HStack {
+                        Text("Interval:")
+                            .bold()
+                        Spacer()
+                        Text(fridgeInterval.rawValue)
+                            .foregroundColor(.secondary)
+                    }
                 }
                 HStack {
                     Text("Energy Used (kWh):")
