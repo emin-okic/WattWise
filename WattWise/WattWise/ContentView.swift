@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import ActivityKit
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
@@ -161,6 +162,7 @@ struct ContentView: View {
                 modelContext.insert(u)
                 try? modelContext.save()
             }
+            refreshLiveActivityFromContent()
         }
         .alert("New Group", isPresented: $showingAddGroupAlert) {
             TextField("Group name", text: $newGroupName)
@@ -188,6 +190,15 @@ struct ContentView: View {
             EnergySummaryView(entries: entriesForSelection)
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.visible)
+        }
+        .onChange(of: entries.count) { _ in
+            refreshLiveActivityFromContent()
+        }
+        .onChange(of: selectedMonth) { _ in
+            refreshLiveActivityFromContent()
+        }
+        .onChange(of: selectedYear) { _ in
+            refreshLiveActivityFromContent()
         }
     }
 
@@ -222,6 +233,13 @@ struct ContentView: View {
         for entry in groupToDelete.entries { entry.group = unc }
         modelContext.delete(groupToDelete)
         try? modelContext.save()
+    }
+    
+    private func refreshLiveActivityFromContent() {
+        Task { @MainActor in
+            let orchestrator = EnergyLiveActivityOrchestrator(modelContext: modelContext)
+            await orchestrator.refreshLiveActivityNearRealtime()
+        }
     }
 }
 

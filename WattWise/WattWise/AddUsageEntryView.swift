@@ -310,6 +310,12 @@ struct AddUsageEntryView: View {
         entry.group = group
         modelContext.insert(entry)
 
+        // Trigger Live Activity refresh so the lock screen updates almost immediately
+        Task { @MainActor in
+            let orchestrator = EnergyLiveActivityOrchestrator(modelContext: modelContext)
+            await orchestrator.refreshLiveActivityNearRealtime()
+        }
+
         // Haptic feedback
         let generator = UINotificationFeedbackGenerator()
         generator.notificationOccurred(.success)
@@ -480,4 +486,3 @@ private extension View {
     return AddUsageEntryView()
         .modelContainer(container)
 }
-

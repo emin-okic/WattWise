@@ -6,6 +6,14 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		C5D64B67300A78BF005B7091 /* EnergyLiveActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5D64B66300A78BF005B7091 /* EnergyLiveActivityAttributes.swift */; };
+		C5D64B69300A78C8005B7091 /* EnergyLiveActivityWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5D64B68300A78C8005B7091 /* EnergyLiveActivityWidget.swift */; };
+		C5D64B6B300A78CA005B7091 /* EnergyBudgetCalculator.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5D64B6A300A78CA005B7091 /* EnergyBudgetCalculator.swift */; };
+		C5D64B6D300A78CB005B7091 /* LiveActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5D64B6C300A78CB005B7091 /* LiveActivityManager.swift */; };
+		C5D64B6F300A78D6005B7091 /* EnergyLiveActivityOrchestrator.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5D64B6E300A78D6005B7091 /* EnergyLiveActivityOrchestrator.swift */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		C52F9C642FF0A55900852175 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -27,6 +35,11 @@
 		C52F9C522FF0A55800852175 /* WattWise.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WattWise.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C52F9C632FF0A55900852175 /* WattWiseTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WattWiseTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C52F9C6D2FF0A55900852175 /* WattWiseUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WattWiseUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		C5D64B66300A78BF005B7091 /* EnergyLiveActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnergyLiveActivityAttributes.swift; sourceTree = "<group>"; };
+		C5D64B68300A78C8005B7091 /* EnergyLiveActivityWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnergyLiveActivityWidget.swift; sourceTree = "<group>"; };
+		C5D64B6A300A78CA005B7091 /* EnergyBudgetCalculator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnergyBudgetCalculator.swift; sourceTree = "<group>"; };
+		C5D64B6C300A78CB005B7091 /* LiveActivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityManager.swift; sourceTree = "<group>"; };
+		C5D64B6E300A78D6005B7091 /* EnergyLiveActivityOrchestrator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnergyLiveActivityOrchestrator.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -92,6 +105,11 @@
 				C52F9C662FF0A55900852175 /* WattWiseTests */,
 				C52F9C702FF0A55900852175 /* WattWiseUITests */,
 				C52F9C532FF0A55800852175 /* Products */,
+				C5D64B66300A78BF005B7091 /* EnergyLiveActivityAttributes.swift */,
+				C5D64B68300A78C8005B7091 /* EnergyLiveActivityWidget.swift */,
+				C5D64B6A300A78CA005B7091 /* EnergyBudgetCalculator.swift */,
+				C5D64B6C300A78CB005B7091 /* LiveActivityManager.swift */,
+				C5D64B6E300A78D6005B7091 /* EnergyLiveActivityOrchestrator.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -249,6 +267,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C5D64B6F300A78D6005B7091 /* EnergyLiveActivityOrchestrator.swift in Sources */,
+				C5D64B6D300A78CB005B7091 /* LiveActivityManager.swift in Sources */,
+				C5D64B69300A78C8005B7091 /* EnergyLiveActivityWidget.swift in Sources */,
+				C5D64B67300A78BF005B7091 /* EnergyLiveActivityAttributes.swift in Sources */,
+				C5D64B6B300A78CA005B7091 /* EnergyBudgetCalculator.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
