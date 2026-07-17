@@ -233,6 +233,8 @@ fileprivate func icon(for appliance: Appliance) -> String {
         return "tshirt"
     case .dryer:
         return "wind"
+    @unknown default:
+        return "questionmark.circle"
     }
 }
 
